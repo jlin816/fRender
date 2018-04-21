@@ -44,6 +44,7 @@ func (mr *Master) heartbeat() {
 }
 
 func main() {
+    fmt.Println("In main")
     mr := initMaster()
 
     // Start listening for new friends
