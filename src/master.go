@@ -4,6 +4,7 @@ import (
     "fmt"
 	"net"
     "os"
+    "sync"
 )
 
 const (
@@ -14,25 +15,31 @@ const (
 )
 
 type Master struct {
-	friends map[Friend]net.Conn
+    mu      sync.Mutex
+	friends map[FriendData]bool // friend info + statuses
 }
 
 type FriendData struct {
 	id     int
-	socket net.Conn
+	conn net.Conn
 }
 
 type StartJobReply struct {
 	Friends []FriendData `json:"friends"`
 }
 
-func initMaster() (mr *Master) {
-    return &Master{}
+func initMaster() (*Master) {
+    mr := &Master{friends: make(map[FriendData]bool)}
+    return mr
 }
 
 func (mr *Master) registerFriend(conn net.Conn) {
-	// Register a new user for the first time.
-    fmt.Println("Connected a new friend!")
+    mr.mu.Lock()
+    defer mr.mu.Unlock()
+
+    newFriend := FriendData{id: len(mr.friends), conn: conn}
+    mr.friends[newFriend] = true
+    fmt.Printf("Connected friend %d!\n", newFriend.id)
 }
 
 func (mr *Master) StartJob(numFriends int) *StartJobReply {
