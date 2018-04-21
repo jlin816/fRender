@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -24,6 +28,82 @@ func initFriend() (*Friend) {
 
 func (fr *Friend) listenOnSocket() {
 	// call receiveJob here somewhere??
+}
+
+func fillString(returnString string, toLength int) string {
+	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
+	for {
+		lengthString := len(returnString)
+		if lengthString < toLength {
+			returnString = returnString + ":"
+			continue
+		}
+		break
+	}
+	return returnString
+}
+
+func (fr *Friend) sendFile(connection net.Conn, filename string) {
+	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
+	defer connection.Close()
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	// Sending filename and filesize
+	fileSize := fillString(strconv.FormatInt(fileInfo.Size(), 10), 10)
+	fileName := fillString(fileInfo.Name(), 64)
+	connection.Write([]byte(fileSize))
+	connection.Write([]byte(fileName))
+	sendBuffer := make([]byte, BUFFERSIZE)
+	for {
+		_, err = file.Read(sendBuffer)
+		if err == io.EOF {
+			break
+		}
+		connection.Write(sendBuffer)
+	}
+	return
+}
+
+func (fr *Friend) receiveFile() { // maybe want port as argument
+  connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
+	if err != nil {
+		panic(err)
+	}
+	defer connection.Close()
+	bufferFileName := make([]byte, 64)
+	bufferFileSize := make([]byte, 10)
+
+	connection.Read(bufferFileSize)
+	fileSize, _ := strconv.ParseInt(strings.Trim(string(bufferFileSize), ":"), 10, 64)
+
+	connection.Read(bufferFileName)
+	fileName := strings.Trim(string(bufferFileName), ":")
+
+	newFile, err := os.Create(fileName)
+
+	if err != nil {
+		panic(err)
+	}
+	defer newFile.Close()
+	var receivedBytes int64
+
+	for {
+		if (fileSize - receivedBytes) < BUFFERSIZE {
+			io.CopyN(newFile, connection, (fileSize - receivedBytes))
+			connection.Read(make([]byte, (receivedBytes+BUFFERSIZE)-fileSize))
+			break
+		}
+		io.CopyN(newFile, connection, BUFFERSIZE)
+		receivedBytes += BUFFERSIZE
+	}
 }
 
 func (fr *Friend) registerWithMaster() {
