@@ -1,17 +1,17 @@
 package main
 
-const masterAddress = "hello_world"
+// const masterAddress = "hello_world"
 
 type Requester struct {
 	me int
 }
 
-func initRequester() *Requester {
-	Requester := Requester{}
-	Requester.registerWithMaster()
-	go Requester.listenOnSocket()
+func initRequester() (*Requester) {
+	requester := Requester{}
+	requester.registerWithMaster()
+	go requester.listenOnSocket()
 
-	return *Requester //help
+	return &requester
 }
 
 func (req *Requester) listenOnSocket() {

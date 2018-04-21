@@ -28,18 +28,16 @@ package main
 // func (mr *Master) heartbeat() {
 // }
 
-const masterAddress = "hello_world"
-
 type Friend struct {
 	me int
 }
 
-func initFriend() *Friend {
+func initFriend() (*Friend) {
 	friend := Friend{}
 	friend.registerWithMaster()
 	go friend.listenOnSocket()
 
-	return *friend //help
+	return &friend //help
 }
 
 func (fr *Friend) listenOnSocket() {
