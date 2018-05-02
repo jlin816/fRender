@@ -6,13 +6,13 @@ type Client struct {
 	me int
 }
 
-func initClient() *Client {
-	Client := Client{}
+func initClient() (*Client) {
+	client := Client{}
 
 	//init friend
 	// init requester
 
-	return *Client //help
+	return &client //help
 }
 
 func (cl *Client) requestJob() {
