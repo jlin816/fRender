@@ -12,19 +12,20 @@ import (
 const BUFFERSIZE = 1024
 
 type FriendData struct {
-	id     int
+	id   int
 	conn net.Conn
 }
 
 type Requester struct {
-	me      int
-	friends []FriendData
+	me         int
+	friends    []FriendData
+	masterConn net.Conn
 }
 
-func initRequester() (*Requester) {
+func initRequester() *Requester {
 	requester := Requester{}
 	requester.registerWithMaster()
-	go requester.listenOnSocket()
+	// go requester.listenOnSocket()
 
 	return &requester
 }
@@ -63,7 +64,7 @@ func (req *Requester) sendFile(connection net.Conn, filename string) {
 }
 
 func (req *Requester) receiveFile() { // maybe want port as argument
-  connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
+	connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +98,12 @@ func (req *Requester) receiveFile() { // maybe want port as argument
 }
 
 func (req *Requester) registerWithMaster() {
-
+	connection, err := net.Dial("tcp", "localhost:3333") // TODO: Update port
+	if err != nil {
+		panic(err)
+	}
+	req.masterConn = connection
+	fmt.Printf("friend registered w/master")
 }
 
 func (req *Requester) connectToFriends() {

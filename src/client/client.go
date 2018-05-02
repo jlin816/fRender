@@ -3,16 +3,20 @@ package main
 const masterAddress = "hello_world"
 
 type Client struct {
-	me int
+	me  int
+	fr  *Friend
+	req *Requester
 }
 
-func initClient() (*Client) {
+func initClient() *Client {
 	client := Client{}
+	friend := initFriend()
+	requester := initRequester()
 
-	//init friend
-	// init requester
+	client.fr = friend
+	client.req = requester
 
-	return &client //help
+	return &client
 }
 
 func (cl *Client) requestJob() {

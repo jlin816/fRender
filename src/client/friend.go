@@ -15,13 +15,15 @@ import (
 const blenderPath = "blender"
 
 type Friend struct {
-	me int
+	me            int
+	masterConn    net.Conn
+	requesterConn net.Conn
 }
 
-func initFriend() (*Friend) {
+func initFriend() *Friend {
 	friend := Friend{}
 	friend.registerWithMaster()
-	go friend.listenOnSocket()
+	// go friend.listenOnSocket()
 
 	return &friend //help
 }
@@ -73,7 +75,7 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 }
 
 func (fr *Friend) receiveFile() { // maybe want port as argument
-  connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
+	connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +109,12 @@ func (fr *Friend) receiveFile() { // maybe want port as argument
 }
 
 func (fr *Friend) registerWithMaster() {
-
+	connection, err := net.Dial("tcp", "localhost:3333") // TODO: Update port
+	if err != nil {
+		panic(err)
+	}
+	fr.masterConn = connection
+	fmt.Printf("friend registered w/master\n")
 }
 
 func (fr *Friend) receiveJob() {
