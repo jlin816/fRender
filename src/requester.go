@@ -1,9 +1,10 @@
 package main
 
-const masterAddress = "hello_world"
+//const masterAddress = "hello_world"
 
 type Requester struct {
-	me int
+	me      int
+	friends []FriendData
 }
 
 func initRequester() *Requester {
@@ -11,7 +12,7 @@ func initRequester() *Requester {
 	Requester.registerWithMaster()
 	go Requester.listenOnSocket()
 
-	return *Requester //help
+	return &Requester //help
 }
 
 func (req *Requester) listenOnSocket() {
@@ -19,6 +20,10 @@ func (req *Requester) listenOnSocket() {
 }
 
 func (req *Requester) registerWithMaster() {
+
+}
+
+func (req *Requester) connectToFriends() {
 
 }
 

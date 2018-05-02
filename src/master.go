@@ -5,7 +5,7 @@ import (
 )
 
 type Master struct {
-	friends map[Friend]bool
+	friends map[FriendData]bool
 }
 
 type FriendData struct {
