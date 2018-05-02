@@ -11,6 +11,11 @@ import (
 
 const BUFFERSIZE = 1024
 
+type FriendData struct {
+	id     int
+	conn net.Conn
+}
+
 type Requester struct {
 	me      int
 	friends []FriendData
