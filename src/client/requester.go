@@ -12,7 +12,7 @@ import (
 const BUFFERSIZE = 1024
 
 type FriendData struct {
-	id   int
+	id   int // currently unused
 	conn net.Conn
 }
 
@@ -106,8 +106,15 @@ func (req *Requester) registerWithMaster() {
 	fmt.Printf("friend registered w/master")
 }
 
-func (req *Requester) connectToFriends() {
-
+func (req *Requester) connectToFriends(friendAddresses []string) {
+	req.friends = make([]FriendData, 0)
+	for _, frAddress := range friendAddresses {
+		connection, err := net.Dial("tcp", frAddress) // TODO: Update port
+		if err != nil {
+			panic(err)
+		}
+		req.friends = append(req.friends, FriendData{conn: connection})
+	}
 }
 
 func (req *Requester) startJob() {

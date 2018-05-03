@@ -22,6 +22,7 @@ func TestConnectToMaster(t *testing.T) {
 	counter := 0
 	for {
 		conn, err := listener.Accept()
+		go listen(conn)
 		if err != nil {
 			fmt.Printf("Error accepting: %v\n", err)
 			os.Exit(1)
@@ -29,12 +30,28 @@ func TestConnectToMaster(t *testing.T) {
 
 		fmt.Printf("connection accepted: #+v", conn)
 		counter += 1
-		if counter == 2 {
-			break
-		}
+		// if counter == 2 {
+		// 	break
+		// }
 	}
 }
 
 func TestSendFile(t *testing.T) {
 
+}
+
+func listen(conn net.Conn) {
+	for {
+		message := make([]byte, 4096)
+		length, err := conn.Read(message)
+		if err != nil {
+			conn.Close()
+			fmt.Printf("error")
+			break
+		}
+		if length > 0 {
+			fmt.Println("MASTER RECEIVED: " + string(message))
+		}
+	}
+	// FAILURE CODE GOES HERE??
 }

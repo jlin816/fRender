@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 //const masterAddress = "hello_world"
@@ -18,18 +19,32 @@ type Friend struct {
 	me            int
 	masterConn    net.Conn
 	requesterConn net.Conn
+	busy          bool
 }
 
 func initFriend() *Friend {
 	friend := Friend{}
 	friend.registerWithMaster()
-	// go friend.listenOnSocket()
+	go friend.listenMaster()
+	go friend.sendHeartbeatsToMaster()
 
 	return &friend //help
 }
 
-func (fr *Friend) listenOnSocket() {
-	// call receiveJob here somewhere??
+func (fr *Friend) listenMaster() {
+	for {
+		message := make([]byte, 4096)
+		length, err := fr.masterConn.Read(message)
+		if err != nil {
+			fr.masterConn.Close()
+			fmt.Printf("error")
+			break
+		}
+		if length > 0 {
+			fmt.Println("RECEIVED: " + string(message))
+		}
+	}
+	// FAILURE CODE GOES HERE??
 }
 
 func fillString(returnString string, toLength int) string {
@@ -146,5 +161,13 @@ func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
 	execErr := syscall.Exec(binary, args, env)
 	if execErr != nil {
 		panic(execErr)
+	}
+}
+
+func (fr *Friend) sendHeartbeatsToMaster() {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	for _ = range ticker.C {
+		heartbeatMessage := []byte(fmt.Sprintf("%v", fr.busy))
+		fr.masterConn.Write(heartbeatMessage)
 	}
 }
