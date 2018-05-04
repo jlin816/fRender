@@ -1,0 +1,19 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	0	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+FriendData	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type FriendData struct {$/;"	type	line:15
+Requester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type Requester struct {$/;"	type	line:21
+initRequester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func initRequester() *Requester {$/;"	func	line:27
+listenOnSocket	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) listenOnSocket() {$/;"	func	line:36
+sendFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) sendFile(connection net.Conn, filename string) {$/;"	func	line:40
+receiveFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) receiveFile() { \/\/ maybe want port as argument$/;"	func	line:69
+receivedBytes	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var receivedBytes int64$/;"	var	line:90
+registerWithMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) registerWithMaster() {$/;"	func	line:103
+connectToFriends	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) connectToFriends(friendAddresses []string) {$/;"	func	line:112
+startJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) startJob() {$/;"	func	line:127
+getProgress	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getProgress() {$/;"	func	line:162
+cancelJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) cancelJob() {$/;"	func	line:166
+getFriendsFromMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getFriendsFromMaster(n int) []string {$/;"	func	line:170
