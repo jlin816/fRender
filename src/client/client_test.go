@@ -22,13 +22,14 @@ func TestConnectToMaster(t *testing.T) {
 	counter := 0
 	for {
 		conn, err := listener.Accept()
+		send(conn)
 		go listen(conn)
 		if err != nil {
 			fmt.Printf("Error accepting: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("connection accepted: #+v", conn)
+		fmt.Printf("connection accepted: %+v\n", conn)
 		counter += 1
 		// if counter == 2 {
 		// 	break
@@ -54,4 +55,9 @@ func listen(conn net.Conn) {
 		}
 	}
 	// FAILURE CODE GOES HERE??
+}
+
+func send(conn net.Conn) {
+	conn.Write([]byte("hello world"))
+
 }

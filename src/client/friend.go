@@ -4,31 +4,52 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/rpc"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
 //const masterAddress = "hello_world"
-const blenderPath = "blender"
+const blenderPath = "/Applications/Blender/blender.app/Contents/MacOS/blender"
+
+type RenderFramesArgs struct {
+	StartFrame int
+	EndFrame   int
+	Filename   string
+}
 
 type Friend struct {
 	me            int
 	masterConn    net.Conn
 	requesterConn net.Conn
-	busy          bool
+	server        net.Listener
+	Busy          bool
 }
 
 func initFriend() *Friend {
 	friend := Friend{}
 	friend.registerWithMaster()
+	rpc.Register(&friend)
+	rpc.HandleHTTP()
+	fmt.Printf("xyz")
+	server, err := net.Listen("tcp", "localhost:19997") // TODO: update with actual port
+	if err != nil {
+		os.Exit(1)
+	}
+	fmt.Printf("abc")
+	friend.server = server
+	go http.Serve(server, nil)
+
 	go friend.listenMaster()
 	go friend.sendHeartbeatsToMaster()
+	go friend.listenServer()
 
-	return &friend //help
+	return &friend
 }
 
 func (fr *Friend) listenMaster() {
@@ -44,7 +65,18 @@ func (fr *Friend) listenMaster() {
 			fmt.Println("RECEIVED: " + string(message))
 		}
 	}
-	// FAILURE CODE GOES HERE??
+}
+
+func (fr *Friend) listenServer() {
+	for {
+		conn, err := fr.server.Accept()
+		if err != nil {
+			os.Exit(1)
+		}
+		fr.requesterConn = conn
+		fr.receiveFile(conn)
+		// do something
+	}
 }
 
 func fillString(returnString string, toLength int) string {
@@ -89,21 +121,21 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	return
 }
 
-func (fr *Friend) receiveFile() { // maybe want port as argument
-	connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
-	if err != nil {
-		panic(err)
-	}
-	defer connection.Close()
+func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argument
+	// connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer connection.Close()
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
+	fmt.Printf("file received\n")
 
 	connection.Read(bufferFileSize)
 	fileSize, _ := strconv.ParseInt(strings.Trim(string(bufferFileSize), ":"), 10, 64)
 
 	connection.Read(bufferFileName)
 	fileName := strings.Trim(string(bufferFileName), ":")
-
 	newFile, err := os.Create(fileName)
 
 	if err != nil {
@@ -139,35 +171,47 @@ func (fr *Friend) receiveJob() {
 func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
 	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
 
-	binary, lookErr := exec.LookPath(blenderPath)
-	if lookErr != nil {
-		panic(lookErr)
-	}
-
-	output_folder := fmt.Sprintf("%v_frames/frame_#####", file)
+	output_folder, _ := filepath.Abs(fmt.Sprintf("%v_frames/frame_#####", file))
+	absoluteFilepath, _ := filepath.Abs(file)
 
 	args := []string{
-		blenderPath,
-		fmt.Sprintf("-b %v", file),
-		"-F PNG",
-		fmt.Sprintf("-s %v", start_frame),
-		fmt.Sprintf("-e %v", end_frame),
-		fmt.Sprintf("-o %v", output_folder),
+		"-b",
+		absoluteFilepath,
+		"-F",
+		"PNG",
+		"-s",
+		fmt.Sprint(start_frame),
+		"-e",
+		fmt.Sprint(end_frame),
+		"-o",
+		output_folder,
 		"-a",
 	}
 
-	env := os.Environ()
-
-	execErr := syscall.Exec(binary, args, env)
-	if execErr != nil {
-		panic(execErr)
+	blenderCmd := exec.Command(blenderPath, args...)
+	_, err := blenderCmd.Output()
+	if err != nil {
+		panic(err)
 	}
+
 }
 
 func (fr *Friend) sendHeartbeatsToMaster() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	for _ = range ticker.C {
-		heartbeatMessage := []byte(fmt.Sprintf("%v", fr.busy))
+		heartbeatMessage := []byte(fmt.Sprintf("%v", fr.Busy))
 		fr.masterConn.Write(heartbeatMessage)
 	}
+}
+
+func (fr *Friend) PrintHello(args int, reply *int) error {
+	fmt.Printf("HIYA\n")
+	*reply = 100
+	return nil
+}
+
+func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *int) error {
+	fmt.Printf("rendering frames\n")
+	fr.renderFrames(args.Filename, args.StartFrame, args.EndFrame)
+	return nil
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
+	"net/rpc"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ const BUFFERSIZE = 1024
 type FriendData struct {
 	id   int // currently unused
 	conn net.Conn
+	rpc  *rpc.Client
 }
 
 type Requester struct {
@@ -26,6 +29,7 @@ func initRequester() *Requester {
 	requester := Requester{}
 	requester.registerWithMaster()
 	// go requester.listenOnSocket()
+	requester.startJob()
 
 	return &requester
 }
@@ -36,7 +40,7 @@ func (req *Requester) listenOnSocket() {
 
 func (req *Requester) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	defer connection.Close()
+	// defer connection.Close()
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -103,7 +107,7 @@ func (req *Requester) registerWithMaster() {
 		panic(err)
 	}
 	req.masterConn = connection
-	fmt.Printf("friend registered w/master")
+	fmt.Printf("requester registered w/master\n")
 }
 
 func (req *Requester) connectToFriends(friendAddresses []string) {
@@ -113,24 +117,50 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		if err != nil {
 			panic(err)
 		}
-		req.friends = append(req.friends, FriendData{conn: connection})
+		rpcconn, err := rpc.DialHTTP("tcp", frAddress)
+		if err != nil {
+			panic(err)
+		}
+		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn})
 	}
 }
 
 func (req *Requester) startJob() {
-	// for p in peers:
-	server, err := net.Listen("tcp", "localhost:27001") // TODO: update with actual port
-	if err != nil {
-		os.Exit(1)
-	}
-	defer server.Close()
-	for {
-		conn, err := server.Accept()
+	friendAddresses := req.getFriendsFromMaster(1)
+
+	//  connectToFriends
+	req.connectToFriends(friendAddresses)
+
+	// determine frame split
+
+	// send file to each friend
+	for _, friend := range req.friends {
+		req.sendFile(friend.conn, "file.blend")
+
+		args := RenderFramesArgs{StartFrame: 0, EndFrame: 1, Filename: "file.blend"}
+		var reply int
+		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
 		if err != nil {
-			os.Exit(1)
+			log.Fatal("rpc error:", err)
 		}
-		go req.sendFile(conn, "filename") // TODO: update filename
+		fmt.Printf("return val: %v", reply)
 	}
+
+	// send instructions
+
+	// for p in peers:
+	// server, err := net.Listen("tcp", "localhost:27001") // TODO: update with actual port
+	// if err != nil {
+	// 	os.Exit(1)
+	// }
+	// defer server.Close()
+	// for {
+	// 	conn, err := server.Accept()
+	// 	if err != nil {
+	// 		os.Exit(1)
+	// 	}
+	// 	go req.sendFile(conn, "filename") // TODO: update filename
+	// }
 
 }
 
@@ -140,4 +170,13 @@ func (req *Requester) getProgress() {
 
 func (req *Requester) cancelJob() {
 
+}
+
+func (req *Requester) getFriendsFromMaster(n int) []string {
+	// TODO
+
+	list := make([]string, 0)
+	list = append(list, "localhost:19997")
+
+	return list
 }
