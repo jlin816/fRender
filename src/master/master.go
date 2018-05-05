@@ -40,7 +40,7 @@ type StartJobArgs struct {
 }
 
 type StartJobReply struct {
-	Friends		[]net.Addr
+	Friends		[]string
 }
 
 type RegisterFriendArgs struct {
@@ -66,13 +66,13 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 	defer mr.mu.Unlock()
 
 	friendCount := 0
-	assignedFriends := []net.Addr{}
+	assignedFriends := make([]string, args.NumFriends)
 	for _, friend := range mr.friends {
 		if !friend.available || (time.Since(friend.lastActive) > friendTimeout) {
 			continue
 		}
 
-		assignedFriends[friendCount] = friend.address
+		assignedFriends[friendCount] = friend.address.String()
 		friendCount++
 
 		if friendCount == args.NumFriends {
@@ -101,6 +101,8 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
     newFriend := FriendData{
 		id: len(mr.friends),
 		address: addr,
+		available: true,
+		lastActive: time.Now(),
 	}
     mr.friends = append(mr.friends, newFriend)
     fmt.Printf("Connected friend %d!\n", newFriend.id)
