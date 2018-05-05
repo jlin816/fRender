@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"errors"
 	"net/http"
+    . "common"
 )
 
 const (
@@ -32,31 +33,6 @@ type FriendData struct {
 //	reader		*bufio.Reader
 	lastActive	time.Time
 	available	bool // alive and not busy
-}
-
-// ===== RPC INTERFACES =========
-type StartJobArgs struct {
-	NumFriends	int
-}
-
-type StartJobReply struct {
-	Friends		[]string
-}
-
-type RegisterFriendArgs struct {
-	Address		string
-}
-
-type RegisterFriendReply struct {
-	Success		bool
-}
-
-type RegisterRequesterArgs struct {
-	Address		string
-}
-
-type RegisterRequesterReply struct {
-	Success		bool
 }
 
 // ====== RPC METHODS ===========
@@ -107,6 +83,12 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
     mr.friends = append(mr.friends, newFriend)
     fmt.Printf("Connected friend %d!\n", newFriend.id)
 	reply.Success = true
+	return nil
+}
+
+func (mr *Master) RegisterRequester(args RegisterRequesterArgs, reply *RegisterRequesterReply) error {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
 	return nil
 }
 

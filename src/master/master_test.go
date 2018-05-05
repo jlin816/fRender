@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
     "net/rpc"
+    . "common"
 )
 
 func TestReceiveMessage(t *testing.T) {
