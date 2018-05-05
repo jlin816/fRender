@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"bytes"
 	"log"
+	"net/rpc"
 )
 
 const (
@@ -29,8 +30,10 @@ type FriendData struct {
 	id			int
 	address		net.Addr
 	conn		net.Conn
+	writer		*bufio.Writer
+	reader		*bufio.Reader
 	lastActive	time.Time
-	busy		bool
+	available	bool // alive and not busy
 }
 
 func initMaster() (*Master) {
@@ -49,6 +52,26 @@ func (mr *Master) registerFriend(conn net.Conn) {
 	}
     mr.friends = append(mr.friends, newFriend)
     fmt.Printf("Connected friend %d!\n", newFriend.id)
+	go mr.listen(newFriend)
+}
+
+func (mr *Master) listen(friend FriendData) {
+	for {
+		line, err := friend.reader.ReadString("\n")
+		if err != nil {
+			fmt.Println("Couldn't read from friend: ", err)
+			break
+		}
+		mr.handleMessage(line, friend.conn)
+	}
+
+	friend.conn.Close()
+	friend.available = false
+}
+
+func (mr *Master) handleMessage(message string, conn net.Conn) {
+	switch {
+	}
 }
 
 func (mr *Master) StartJob(numFriends int, requesterConn net.Conn) {
@@ -59,7 +82,7 @@ func (mr *Master) StartJob(numFriends int, requesterConn net.Conn) {
 	friendCount := 0
 	assignedFriends := []net.Addr{}
 	for _, friend := range mr.friends {
-		if friend.busy || (time.Since(friend.lastActive) > friendTimeout) {
+		if !friend.available || (time.Since(friend.lastActive) > friendTimeout) {
 			continue
 		}
 
@@ -74,10 +97,11 @@ func (mr *Master) StartJob(numFriends int, requesterConn net.Conn) {
 				log.Fatal("Encode error:", err)
 			}
 
-			requesterConn.Write(replyBuffer.Bytes())
-			return
+			break
 		}
 	}
+
+	requesterConn.Write(replyBuffer.Bytes())
 }
 
 func main() {
