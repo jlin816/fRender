@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 	"time"
+    "net/rpc"
 )
 
 func TestReceiveMessage(t *testing.T) {
@@ -18,35 +19,49 @@ func TestReceiveMessage(t *testing.T) {
 }
 
 func TestMultipleReceiveMessage(t *testing.T) {
-    killChan := make(chan int)
 	go startMaster()
-	go connectClient(killChan)
-    go connectClient(killChan)
+	go connectHTTPClient()
+    go connectHTTPClient()
 	time.Sleep(5000 * time.Millisecond)
-    killChan <- 1
-    killChan <- 1
 }
 
 func TestStartJob(t *testing.T) {
-    killChan := make(chan int)
-    go connectClient(killChan)
-    go connectClient(killChan)
+    go main()
+    c1 := connectHTTPClient()
+    // Test StartJob RPC can be called
+    args := StartJobArgs{NumFriends: 1}
+    reply := StartJobReply{}
+    fmt.Println("here")
+    err := c1.Call("Master.StartJob", args, &reply)
+    if err != nil {
+        fmt.Printf("Error calling StartJob: %v", err)
+    }
+    fmt.Printf("Success")
+
     // Test that if there are enough friends our request is fulfilled
 
     // TODO Test that if there are not enough friends 
 
     // Test that inactive friends are not returned
-    killChan <- 1
 }
 
-func connectClient(ch chan int) {
-	conn, err := net.Dial("tcp", "localhost:3333")
+func connectHTTPClient() *rpc.Client {
+    client, err := rpc.DialHTTP("tcp", "localhost:3333")
+    fmt.Println("done")
 	if err != nil {
-		fmt.Printf("Error sending: %v", err)
-		return
+		fmt.Printf("Error connecting: %v", err)
+		return nil
 	}
-    <-ch
-	conn.Close()
+
+    // Register yourself on Master
+    args := RegisterFriendArgs{Address: "127.0.0.1:3001"}
+    reply := RegisterFriendReply{}
+    err = client.Call("Master.RegisterFriend", args, &reply)
+    if err != nil {
+		fmt.Printf("Error registering: %v", err)
+		return nil
+	}
+    return client
 }
 
 func startMaster() {

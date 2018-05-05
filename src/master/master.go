@@ -6,10 +6,9 @@ import (
     "os"
     "sync"
 	"time"
-	"encoding/gob"
-	"bytes"
-	"log"
 	"net/rpc"
+	"errors"
+	"net/http"
 )
 
 const (
@@ -29,53 +28,40 @@ type Master struct {
 type FriendData struct {
 	id			int
 	address		net.Addr
-	conn		net.Conn
-	writer		*bufio.Writer
-	reader		*bufio.Reader
+//	writer		*bufio.Writer
+//	reader		*bufio.Reader
 	lastActive	time.Time
 	available	bool // alive and not busy
 }
 
-func initMaster() (*Master) {
-    mr := &Master{friends: []FriendData{}}
-    return mr
+// ===== RPC INTERFACES =========
+type StartJobArgs struct {
+	NumFriends	int
 }
 
-func (mr *Master) registerFriend(conn net.Conn) {
-    mr.mu.Lock()
-    defer mr.mu.Unlock()
-
-    newFriend := FriendData{
-		id: len(mr.friends),
-		address: conn.RemoteAddr(),
-		conn: conn,
-	}
-    mr.friends = append(mr.friends, newFriend)
-    fmt.Printf("Connected friend %d!\n", newFriend.id)
-	go mr.listen(newFriend)
+type StartJobReply struct {
+	Friends		[]net.Addr
 }
 
-func (mr *Master) listen(friend FriendData) {
-	for {
-		line, err := friend.reader.ReadString("\n")
-		if err != nil {
-			fmt.Println("Couldn't read from friend: ", err)
-			break
-		}
-		mr.handleMessage(line, friend.conn)
-	}
-
-	friend.conn.Close()
-	friend.available = false
+type RegisterFriendArgs struct {
+	Address		string
 }
 
-func (mr *Master) handleMessage(message string, conn net.Conn) {
-	switch {
-	}
+type RegisterFriendReply struct {
+	Success		bool
 }
 
-func (mr *Master) StartJob(numFriends int, requesterConn net.Conn) {
-	// Returns active friends allocated to this job
+type RegisterRequesterArgs struct {
+	Address		string
+}
+
+type RegisterRequesterReply struct {
+	Success		bool
+}
+
+// ====== RPC METHODS ===========
+func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
+	fmt.Println("StartJob called")
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 
@@ -89,24 +75,45 @@ func (mr *Master) StartJob(numFriends int, requesterConn net.Conn) {
 		assignedFriends[friendCount] = friend.address
 		friendCount++
 
-		if friendCount == numFriends {
-			var replyBuffer bytes.Buffer
-			enc := gob.NewEncoder(&replyBuffer)
-			err := enc.Encode(assignedFriends)
-			if err != nil {
-				log.Fatal("Encode error:", err)
-			}
-
-			break
+		if friendCount == args.NumFriends {
+			reply.Friends = assignedFriends
+			return nil
 		}
 	}
+	return errors.New("Not enough active friends")
+}
 
-	requesterConn.Write(replyBuffer.Bytes())
+// ====== PRIVATE METHODS =========
+func initMaster() (*Master) {
+    mr := &Master{friends: []FriendData{}}
+    return mr
+}
+
+func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendReply) error {
+    mr.mu.Lock()
+    defer mr.mu.Unlock()
+
+	addr, err := net.ResolveTCPAddr("tcp", args.Address)
+	if err != nil {
+		return errors.New("Can't resolve friend's TCP addr")
+	}
+
+    newFriend := FriendData{
+		id: len(mr.friends),
+		address: addr,
+	}
+    mr.friends = append(mr.friends, newFriend)
+    fmt.Printf("Connected friend %d!\n", newFriend.id)
+	reply.Success = true
+	return nil
 }
 
 func main() {
-    fmt.Println("In main")
     mr := initMaster()
+
+	rpc.Register(mr)
+	rpc.HandleHTTP()
+
 
     // Start listening for new friends
     listener, err := net.Listen(connType, address)
@@ -115,15 +122,10 @@ func main() {
         os.Exit(1)
     }
 
+	fmt.Println("serving")
+	http.Serve(listener, nil)
+	fmt.Println("past serving")
+
     defer listener.Close()
-
-    for {
-        conn, err := listener.Accept()
-        if err != nil {
-            fmt.Printf("Error accepting: %v\n", err)
-            os.Exit(1)
-        }
-
-        go mr.registerFriend(conn)
-    }
+	defer fmt.Println("closed")
 }
