@@ -9,8 +9,11 @@ import (
     . "common"
 )
 
+func init() {
+    go NewMaster()
+}
+
 func TestReceiveMessage(t *testing.T) {
-	go main()
 	conn, err := net.Dial("tcp", "localhost:3333")
 	if err != nil {
 		t.Errorf("Error sending: %v", err)
@@ -20,14 +23,12 @@ func TestReceiveMessage(t *testing.T) {
 }
 
 func TestMultipleReceiveMessage(t *testing.T) {
-	go startMaster()
 	go connectHTTPClient()
     go connectHTTPClient()
 	time.Sleep(5000 * time.Millisecond)
 }
 
 func TestStartJob(t *testing.T) {
-    go main()
     c1 := connectHTTPClient()
     // Test StartJob RPC can be called
     args := StartJobArgs{NumFriends: 1}
@@ -63,8 +64,4 @@ func connectHTTPClient() *rpc.Client {
 		return nil
 	}
     return client
-}
-
-func startMaster() {
-    main()
 }

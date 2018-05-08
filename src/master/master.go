@@ -2,8 +2,8 @@ package master
 
 import (
     "fmt"
+    "log"
 	"net"
-    "os"
     "sync"
 	"time"
 	"net/rpc"
@@ -23,6 +23,7 @@ const friendTimeout = 200 * time.Millisecond
 
 type Master struct {
     mu      sync.Mutex
+    server  *http.Server
 	friends []FriendData
     requesters []RequesterData
 }
@@ -111,19 +112,19 @@ func NewMaster() *Master {
     rpc.Register(mr)
 	rpc.HandleHTTP()
 
-
     // Start listening for new friends
-    listener, err := net.Listen(connType, address)
-    defer listener.Close()
+    s := &http.Server {
+        Addr: address,
 
-    if err != nil {
-        fmt.Printf("Error listening: %v", err)
-        os.Exit(1)
     }
-
-	http.Serve(listener, nil)
-
+    mr.server = s
+    log.Fatal(s.ListenAndServe())
+    fmt.Println("Started master server")
     return mr
+}
+
+func (mr *Master) GetAllRequesters() ([]RequesterData) {
+    return mr.requesters
 }
 
 // ====== PRIVATE METHODS =========
