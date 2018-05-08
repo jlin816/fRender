@@ -1,17 +1,18 @@
 package client
 
-const masterAddress = "hello_world"
+const masterAddress = "locahost:3333"
 
 type Client struct {
 	me  int
+    username string
 	fr  *Friend
 	req *Requester
 }
 
-func initClient() *Client {
-	client := Client{}
-	friend := initFriend(19997)
-	requester := initRequester(19998)
+func initClient(username string) *Client {
+    client := Client{username: username}
+	friend := initFriend(username, 19997)
+	requester := initRequester(username, 19998)
 
 	client.fr = friend
 	client.req = requester
@@ -19,8 +20,8 @@ func initClient() *Client {
 	return &client
 }
 
-func NewClient() *Client {
-    return initClient()
+func NewClient(username string) *Client {
+    return initClient(username)
 }
 
 func (cl *Client) requestJob() {

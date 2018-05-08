@@ -6,14 +6,13 @@ import (
     "testing"
 )
 
-func TestRegisterRequester(t *testing.T) {
-    // Test that a requester can register itself on the master.
-    client.NewClient()
-    master.NewMaster()
-}
+func TestRegisterClient(t *testing.T) {
+    mr := master.NewMaster()
+    c1 := client.NewClient("client1")
+    // Test that a client can register itself as a requester on the master. 
 
-func TestRegisterFriend(t *testing.T) {
-    // Test that a friend can register itself on the master.
+
+    // Test that a client can register itself as a friend on the master.
 }
 
 func TestStartJobSuccess(t *testing.T) {

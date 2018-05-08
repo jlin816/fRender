@@ -21,13 +21,14 @@ type FriendData struct {
 
 type Requester struct {
 	me         int
+    username   string
     port       int
 	friends    []FriendData
 	masterConn net.Conn
 }
 
-func initRequester(port int) *Requester {
-    requester := Requester{port: port}
+func initRequester(username string, port int) *Requester {
+    requester := Requester{username: username, port: port}
 	requester.registerWithMaster()
 	// go requester.listenOnSocket()
 	requester.startJob()

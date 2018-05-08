@@ -10,6 +10,7 @@ type StartJobReply struct {
 
 type RegisterFriendArgs struct {
 	Address		string
+    Username    string
 }
 
 type RegisterFriendReply struct {
@@ -18,6 +19,7 @@ type RegisterFriendReply struct {
 
 type RegisterRequesterArgs struct {
 	Address		string
+    Username    string
 }
 
 type RegisterRequesterReply struct {

@@ -29,6 +29,7 @@ type Master struct {
 
 type FriendData struct {
 	id			int
+    username    string
 	address		net.Addr
 //	writer		*bufio.Writer
 //	reader		*bufio.Reader
@@ -38,6 +39,7 @@ type FriendData struct {
 
 type RequesterData struct {
     id          int
+    username    string
 }
 
 // ====== RPC METHODS ===========
@@ -53,6 +55,7 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
 
     newFriend := FriendData {
 		id: len(mr.friends),
+        username: args.Username,
 		address: addr,
 		available: true,
 		lastActive: time.Now(),
@@ -69,6 +72,7 @@ func (mr *Master) RegisterRequester(args RegisterRequesterArgs, reply *RegisterR
 
     newRequester := RequesterData {
         id: len(mr.requesters),
+        username: args.Username,
     }
     mr.requesters = append(mr.requesters, newRequester)
     fmt.Printf("Connected new requester %d!\n", newRequester.id)

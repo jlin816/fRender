@@ -25,6 +25,7 @@ type RenderFramesArgs struct {
 
 type Friend struct {
 	me            int
+    username      string
     port          int
 	masterConn    net.Conn
 	requesterConn net.Conn
@@ -32,16 +33,19 @@ type Friend struct {
 	Busy          bool
 }
 
-func initFriend(port int) *Friend {
+func initFriend(username string, port int) *Friend {
     friend := Friend{port: port}
+
 	friend.registerWithMaster()
 	rpc.Register(&friend)
 	rpc.HandleHTTP()
 	fmt.Printf("xyz")
+
 	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port)) // TODO: update with actual port
 	if err != nil {
 		os.Exit(1)
 	}
+
 	fmt.Printf("abc")
 	friend.server = server
 	go http.Serve(server, nil)
