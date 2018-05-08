@@ -10,8 +10,8 @@ type Client struct {
 
 func initClient() *Client {
 	client := Client{}
-	friend := initFriend()
-	requester := initRequester()
+	friend := initFriend(19997)
+	requester := initRequester(19998)
 
 	client.fr = friend
 	client.req = requester
