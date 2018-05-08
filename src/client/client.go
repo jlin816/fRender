@@ -1,4 +1,4 @@
-package main
+package client
 
 const masterAddress = "hello_world"
 
@@ -17,6 +17,10 @@ func initClient() *Client {
 	client.req = requester
 
 	return &client
+}
+
+func NewClient() *Client {
+    return initClient()
 }
 
 func (cl *Client) requestJob() {

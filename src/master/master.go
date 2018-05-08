@@ -99,31 +99,27 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 	return errors.New("Not enough active friends")
 }
 
-// ====== PRIVATE METHODS =========
+// ======= PUBLIC METHODS =========
 
-func initMaster() (*Master) {
+func NewMaster() *Master {
     mr := &Master{friends: []FriendData{}}
-    return mr
-}
 
-func main() {
-    mr := initMaster()
-
-	rpc.Register(mr)
+    rpc.Register(mr)
 	rpc.HandleHTTP()
 
 
     // Start listening for new friends
     listener, err := net.Listen(connType, address)
+    defer listener.Close()
+
     if err != nil {
         fmt.Printf("Error listening: %v", err)
         os.Exit(1)
     }
 
-	fmt.Println("serving")
 	http.Serve(listener, nil)
-	fmt.Println("past serving")
 
-    defer listener.Close()
-	defer fmt.Println("closed")
+    return mr
 }
+
+// ====== PRIVATE METHODS =========
