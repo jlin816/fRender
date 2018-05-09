@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+    . "common"
 )
 
 const BUFFERSIZE = 1024
@@ -24,14 +25,19 @@ type Requester struct {
     username   string
     port       int
 	friends    []FriendData
-	masterConn net.Conn
+    masterAddr net.Addr
 }
 
-func initRequester(username string, port int) *Requester {
-    requester := Requester{username: username, port: port}
+func initRequester(username string, port int, masterAddr string) *Requester {
+    addr, err := net.ResolveTCPAddr("tcp", masterAddr)
+    if err != nil{
+        fmt.Printf("Invalid master addr %s", masterAddr)
+        panic(err)
+    }
+    requester := Requester{username: username, port: port, masterAddr: addr}
 	requester.registerWithMaster()
 	// go requester.listenOnSocket()
-	requester.startJob()
+	// requester.startJob()
 
 	return &requester
 }
@@ -104,12 +110,20 @@ func (req *Requester) receiveFile() { // maybe want port as argument
 }
 
 func (req *Requester) registerWithMaster() {
-	connection, err := net.Dial("tcp", "localhost:3333") // TODO: Update port
-	if err != nil {
-		panic(err)
-	}
-	req.masterConn = connection
-	fmt.Printf("requester registered w/master\n")
+    httpClient, err := rpc.DialHTTP("tcp", req.masterAddr.String())
+    if err != nil {
+        fmt.Println("Couldn't register requester with master")
+        panic(err)
+    }
+
+    args := RegisterRequesterArgs{Username: req.username}
+    reply := RegisterFriendReply{}
+    err = httpClient.Call("Master.RegisterRequester", args, &reply)
+    if err != nil {
+        fmt.Printf("Error registering: %v", err)
+        panic(err)
+    }
+	fmt.Printf("Requester registered w/master!!\n")
 }
 
 func (req *Requester) connectToFriends(friendAddresses []string) {

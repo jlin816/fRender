@@ -2,7 +2,6 @@ package master
 
 import (
     "fmt"
-    "log"
 	"net"
     "sync"
 	"time"
@@ -110,15 +109,18 @@ func NewMaster() *Master {
     mr := &Master{friends: []FriendData{}}
 
     rpc.Register(mr)
+
+    // Workaround from https://github.com/golang/go/issues/13395
+    oldMux := http.DefaultServeMux
+    mux := http.NewServeMux()
+    http.DefaultServeMux = mux
+
 	rpc.HandleHTTP()
 
-    // Start listening for new friends
-    s := &http.Server {
-        Addr: address,
+    http.DefaultServeMux = oldMux
 
-    }
-    mr.server = s
-    log.Fatal(s.ListenAndServe())
+    // Start listening for new friends
+    go http.ListenAndServe(address, mux)
     fmt.Println("Started master server")
     return mr
 }

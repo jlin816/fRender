@@ -38,7 +38,15 @@ func initFriend(username string, port int) *Friend {
 
 	friend.registerWithMaster()
 	rpc.Register(&friend)
+
+    // Hacky stuff from https://github.com/golang/go/issues/13395
+    oldMux := http.DefaultServeMux
+    mux := http.NewServeMux()
+    http.DefaultServeMux = mux
+
 	rpc.HandleHTTP()
+
+    http.DefaultServeMux = oldMux
 	fmt.Printf("xyz")
 
 	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port)) // TODO: update with actual port

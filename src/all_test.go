@@ -4,13 +4,23 @@ import (
     "client"
     "master"
     "testing"
+    "fmt"
 )
+
+func assert(t *testing.T, condition bool, message string) {
+    if !condition {
+        t.Error("Failed: ", message)
+    }
+    fmt.Println("Success: ", message)
+}
 
 func TestRegisterClient(t *testing.T) {
     mr := master.NewMaster()
-    c1 := client.NewClient("client1")
-    // Test that a client can register itself as a requester on the master. 
-
+    client.NewClient("client1")
+    // Test that a client can register itself as a requester on the master.
+    requesters := mr.GetAllRequesters()
+    assert(t, len(requesters)== 1, "Master knows one requester")
+//    assert(t, requesters[0].username == "client1", "Master has registered tthe requester")
 
     // Test that a client can register itself as a friend on the master.
 }
