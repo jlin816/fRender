@@ -1,15 +1,17 @@
 package client
 
 import (
+	. "common"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/rpc"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
-    . "common"
+	"sync"
 )
 
 const BUFFERSIZE = 1024
@@ -22,34 +24,38 @@ type FriendData struct {
 
 type Requester struct {
 	me         int
-    username   string
-    port       int
+	username   string
 	friends    []FriendData
-    masterAddr net.Addr
+	masterAddr net.Addr
+	mu         sync.Mutex
 }
 
-func initRequester(username string, port int, masterAddr string) *Requester {
-    addr, err := net.ResolveTCPAddr("tcp", masterAddr)
-    if err != nil{
-        fmt.Printf("Invalid master addr %s", masterAddr)
-        panic(err)
-    }
-    requester := Requester{username: username, port: port, masterAddr: addr}
+func initRequester(username string, masterAddr string) *Requester {
+	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
+	if err != nil {
+		fmt.Printf("Invalid master addr %s", masterAddr)
+		panic(err)
+	}
+	requester := Requester{username: username, masterAddr: addr}
 	requester.registerWithMaster()
+
+	path := requester.getLocalFilename("")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, os.ModePerm)
+	}
 	// go requester.listenOnSocket()
 	// requester.startJob()
+	fmt.Printf("requester initialised %v\n", username)
 
 	return &requester
-}
-
-func (req *Requester) listenOnSocket() {
-	// call receiveJob here somewhere??
 }
 
 func (req *Requester) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
 	// defer connection.Close()
+	filename = req.getLocalFilename(filename)
 	file, err := os.Open(filename)
+	fmt.Printf("sending %v\n", filename)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -75,12 +81,7 @@ func (req *Requester) sendFile(connection net.Conn, filename string) {
 	return
 }
 
-func (req *Requester) receiveFile() { // maybe want port as argument
-	connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
-	if err != nil {
-		panic(err)
-	}
-	defer connection.Close()
+func (req *Requester) receiveFile(connection net.Conn) {
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
 
@@ -89,8 +90,9 @@ func (req *Requester) receiveFile() { // maybe want port as argument
 
 	connection.Read(bufferFileName)
 	fileName := strings.Trim(string(bufferFileName), ":")
-
+	fileName = req.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
+	fmt.Printf("received file! %v\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -133,51 +135,98 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		if err != nil {
 			panic(err)
 		}
-		rpcconn, err := rpc.DialHTTP("tcp", frAddress)
+		fmt.Printf("tcp connected to %v\n", frAddress)
+
+		addrParts := strings.Split(frAddress, ":")
+		port, _ := strconv.ParseInt(addrParts[1], 0, 64)
+		rpcAddr := fmt.Sprintf("%v:%v", addrParts[0], port+1)
+		rpcconn, err := rpc.Dial("tcp", rpcAddr)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("rpc connected to %v\n", frAddress)
+
 		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn})
+		fmt.Printf("connected to %v\n", frAddress)
 	}
 }
 
-func (req *Requester) startJob() {
+type Range struct {
+	start int
+	end   int
+}
+
+func basicSplitFrames(numFrames int, numFriends int) [][]int {
+	framesPerFriend := (numFrames + numFriends - 1) / numFriends
+	frameSplit := make([][]int, numFriends)
+
+	friend := -1
+	for i := 0; i <= numFrames; i++ {
+		if i%framesPerFriend == 0 && friend < (numFriends-1) {
+			friend += 1
+		}
+		frameSplit[friend] = append(frameSplit[friend], i)
+	}
+	return frameSplit
+}
+
+func (req *Requester) StartJob(filename string, numFrames int) bool {
+	fmt.Println("start job...")
+	var wg sync.WaitGroup
+	// create folder for output
+	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
+	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
+		os.Mkdir(outputFolder, os.ModePerm)
+	}
+
+	// get list of friends
 	friendAddresses := req.getFriendsFromMaster(1)
 
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
 
+	fmt.Println("connected to friends...")
+
 	// determine frame split
+	numFriends := len(req.friends)
+	frameSplit := basicSplitFrames(numFrames, numFriends)
 
 	// send file to each friend
-	for _, friend := range req.friends {
-		req.sendFile(friend.conn, "file.blend")
-
-		args := RenderFramesArgs{StartFrame: 0, EndFrame: 1, Filename: "file.blend"}
-		var reply int
-		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
-		if err != nil {
-			log.Fatal("rpc error:", err)
-		}
-		fmt.Printf("return val: %v", reply)
+	for i, friend := range req.friends {
+		wg.Add(1)
+		go req.renderFramesOnFriend(filename, friend, frameSplit[i], &wg)
 	}
+	wg.Wait()
+	fmt.Println("all frames received...")
+	return true
 
-	// send instructions
+}
 
-	// for p in peers:
-	// server, err := net.Listen("tcp", "localhost:27001") // TODO: update with actual port
-	// if err != nil {
-	// 	os.Exit(1)
-	// }
-	// defer server.Close()
-	// for {
-	// 	conn, err := server.Accept()
-	// 	if err != nil {
-	// 		os.Exit(1)
-	// 	}
-	// 	go req.sendFile(conn, "filename") // TODO: update filename
-	// }
+func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, wg *sync.WaitGroup) {
+	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
+	req.sendFile(friend.conn, filename)
 
+	args := RenderFramesArgs{Filename: filename}
+	args.Frames = frames
+
+	fmt.Println(args)
+	var reply string
+	err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
+	if err != nil {
+		log.Fatal("rpc error:", err)
+	}
+	fmt.Printf("reply: %v\n", reply)
+	req.receiveFile(friend.conn)
+
+	req.mu.Lock()
+	zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+	fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+	err1 := zipCmd.Run()
+	if err1 != nil {
+		panic(err1)
+	}
+	req.mu.Unlock()
+	wg.Done()
 }
 
 func (req *Requester) getProgress() {
@@ -192,7 +241,13 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 	// TODO
 
 	list := make([]string, 0)
+	list = append(list, "localhost:19993")
+	list = append(list, "localhost:19995")
 	list = append(list, "localhost:19997")
 
 	return list
+}
+
+func (req *Requester) getLocalFilename(filename string) string {
+	return "files/" + req.username + "_requester/" + filename
 }

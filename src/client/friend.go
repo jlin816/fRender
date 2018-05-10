@@ -3,8 +3,8 @@ package client
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
-	"net/http"
 	"net/rpc"
 	"os"
 	"os/exec"
@@ -15,13 +15,13 @@ import (
 	. "common"
 )
 
-//const masterAddress = "hello_world"
 const blenderPath = "/Applications/Blender/blender.app/Contents/MacOS/blender"
 
 type RenderFramesArgs struct {
 	StartFrame int
 	EndFrame   int
 	Filename   string
+	Frames     []int
 }
 
 type Friend struct {
@@ -33,41 +33,56 @@ type Friend struct {
 	server        net.Listener
 	available	  bool
 	httpClient	  *net.Client
+    rpcServer     net.Listener
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
     addr, err := net.ResolveTCPAddr("tcp", masterAddr)
-    if err != nil{
+    if err != nil {
         fmt.Printf("Invalid master addr %s", masterAddr)
         panic(err)
     }
     friend := Friend{username: username, port: port, masterAddr: addr}
 	friend.registerWithMaster()
 
+	//make local folder
+	path := friend.getLocalFilename("")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, os.ModePerm)
+	}
 
     // Friends receive RPCs as well, init as a server
 	rpc.Register(&friend)
-
-    // Hacky stuff from https://github.com/golang/go/issues/13395
-    oldMux := http.DefaultServeMux
-    mux := http.NewServeMux()
-    http.DefaultServeMux = mux
-
-	rpc.HandleHTTP()
-
-    http.DefaultServeMux = oldMux
-
-    // Init TCP socket for file transfer
-	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port)) // TODO: update with actual port
+	handler := rpc.NewServer()
+	handler.Register(&friend)
+	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
+	fmt.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 
-	friend.server = server
-	go http.Serve(server, nil)
+	go func() {
+		for {
+			cxn, err := ln.Accept()
+			if err != nil {
+				panic(err)
+			}
+			log.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
+			go handler.ServeConn(cxn)
+		}
+	}()
+
+	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+    if err != nil {
+		panic(err)
+	}
+
+    friend.server = server
 
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
+
+	fmt.Printf("friend initialised %v\n", username)
 
 	return &friend
 }
@@ -99,7 +114,7 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	defer connection.Close()
+	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -127,21 +142,17 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 }
 
 func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argument
-	// connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer connection.Close()
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
-	fmt.Printf("file received\n")
 
 	connection.Read(bufferFileSize)
 	fileSize, _ := strconv.ParseInt(strings.Trim(string(bufferFileSize), ":"), 10, 64)
 
 	connection.Read(bufferFileName)
 	fileName := strings.Trim(string(bufferFileName), ":")
+	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
+	fmt.Printf("file received %v\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -185,36 +196,35 @@ func (fr *Friend) registerWithMaster() {
 	fmt.Printf("friend registered w/master\n")
 }
 
-func (fr *Friend) receiveJob() {
-
-}
-
-func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
-	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
-
-	output_folder, _ := filepath.Abs(fmt.Sprintf("%v_frames/frame_#####", file))
-	absoluteFilepath, _ := filepath.Abs(file)
+func (fr *Friend) renderFrames(file string, frames []int) string {
+	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
+	outputFolder, _ := filepath.Abs(relativeFolder)
+	outputFiles := outputFolder + "/frame_#####"
+	absoluteFilepath, _ := filepath.Abs(fr.getLocalFilename(file))
 
 	args := []string{
 		"-b",
 		absoluteFilepath,
 		"-F",
 		"PNG",
-		"-s",
-		fmt.Sprint(start_frame),
-		"-e",
-		fmt.Sprint(end_frame),
 		"-o",
-		output_folder,
-		"-a",
+		outputFiles,
+		"-f",
+		arrayToString(frames, ","),
 	}
 
 	blenderCmd := exec.Command(blenderPath, args...)
-	_, err := blenderCmd.Output()
+	err := blenderCmd.Run()
 	if err != nil {
 		panic(err)
 	}
 
+	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
+	err1 := zipCmd.Run()
+	if err1 != nil {
+		panic(err1)
+	}
+	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
 }
 
 func (fr *Friend) sendHeartbeatsToMaster() {
@@ -230,16 +240,21 @@ func (fr *Friend) sendHeartbeatsToMaster() {
 	}
 }
 
-func (fr *Friend) PrintHello(args int, reply *int) error {
-	fmt.Printf("HIYA\n")
-	*reply = 100
+func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
+	fmt.Printf("rendering frames\n")
+	file := fr.renderFrames(args.Filename, args.Frames)
+	fr.sendFile(fr.requesterConn, file)
+	fmt.Println(file)
+	*reply = file
 	return nil
 }
 
-func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *int) error {
-	fmt.Printf("rendering frames\n")
-	fr.renderFrames(args.Filename, args.StartFrame, args.EndFrame)
-	return nil
+func (fr *Friend) getLocalFilename(filename string) string {
+	return "files/" + fr.username + "_friend/" + filename
+}
+
+func arrayToString(a []int, delim string) string {
+	return strings.Trim(strings.Replace(fmt.Sprint(a), " ", delim, -1), "[]")
 }
 
 // From https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go

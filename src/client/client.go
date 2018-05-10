@@ -3,16 +3,16 @@ package client
 const masterAddress = "localhost:3333"
 
 type Client struct {
-	me  int
-    username string
-	fr  *Friend
-	req *Requester
+	me       int
+	username string
+	fr       *Friend
+	req      *Requester
 }
 
-func initClient(username string) *Client {
-    client := Client{username: username}
+func initClient(username string, port int) *Client {
+	client := Client{username: username}
 
-	requester := initRequester(username, 19998, masterAddress)
+	requester := initRequester(username, masterAddress)
 	friend := initFriend(username, 19997, masterAddress)
 
 	client.fr = friend
@@ -21,10 +21,10 @@ func initClient(username string) *Client {
 	return &client
 }
 
-func NewClient(username string) *Client {
-    return initClient(username)
+func NewClient(username string, port int) *Client {
+	return initClient(username, port)
 }
 
-func (cl *Client) requestJob() {
-
+func (cl *Client) StartJob(filename string, numFrames int) {
+	cl.req.StartJob(filename, numFrames)
 }
