@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/rpc"
 	"os"
 	"strconv"
 	"strings"
-    . "common"
+  "common"
 )
 
 const BUFFERSIZE = 1024
@@ -141,6 +142,21 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
+struct Range {
+	int start
+	int end
+}
+
+func basicSplitFrames(int numFrames, int numFriends) {
+	framesPerFriend = math.Ceil(numFrames/numFriends)
+	frameSplit = make([]Range, numFriends)
+	for i := 0; i < numFriends-1; i++ {
+		frameSplit[i] = Range{start: i * framesPerFriend, end: (i+1) * framesPerFriend}
+	}
+	frameSplit[numFriends-1] = Range{start: numFriends * framesPerFriend, end: numFrames}
+	return frameSplit
+
+
 func (req *Requester) startJob() {
 	friendAddresses := req.getFriendsFromMaster(1)
 
@@ -148,18 +164,22 @@ func (req *Requester) startJob() {
 	req.connectToFriends(friendAddresses)
 
 	// determine frame split
-
+	numFrames := 150 // TODO
+	numFriends := len(req.friends)
+	frameSplit = basicSplitFrames(numFrames, numFriends)
 	// send file to each friend
-	for _, friend := range req.friends {
-		req.sendFile(friend.conn, "file.blend")
+	for i, friend := range req.friends {
+		for _, r := range frameSplit[friend] {
+			req.sendFile(friend.conn, "file.blend")
 
-		args := RenderFramesArgs{StartFrame: 0, EndFrame: 1, Filename: "file.blend"}
-		var reply int
-		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
-		if err != nil {
-			log.Fatal("rpc error:", err)
+			args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: "file.blend"}
+			var reply int
+			err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
+			if err != nil {
+				log.Fatal("rpc error:", err)
+			}
+			fmt.Printf("return val: %v", reply)
 		}
-		fmt.Printf("return val: %v", reply)
 	}
 
 	// send instructions
