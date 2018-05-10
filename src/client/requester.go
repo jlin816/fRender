@@ -156,43 +156,17 @@ type Range struct {
 	end   int
 }
 
-// func basicSplitFrames(numFrames int, numFriends int) [][]Range {
-// 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
-// 	frameSplit := make([][]Range, numFriends)
-// 	for i := 0; i < numFriends-1; i++ {
-// 		frameSplit[i] = []Range{}
-// 		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
-// 	}
-// 	frameSplit[numFriends-1] = []Range{}
-// 	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
-// 	return frameSplit
-// }
-
 func basicSplitFrames(numFrames int, numFriends int) [][]int {
 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
 	frameSplit := make([][]int, numFriends)
-	for x := 0; x < numFriends; x++ {
-		fmt.Println(frameSplit[x])
-		frameSplit[x] = make([]int, 0)
-		fmt.Println(frameSplit[x])
-	}
 
 	friend := -1
 	for i := 0; i <= numFrames; i++ {
 		if i%framesPerFriend == 0 && friend < (numFriends-1) {
 			friend += 1
 		}
-		fmt.Println(friend)
 		frameSplit[friend] = append(frameSplit[friend], i)
 	}
-	fmt.Print(frameSplit)
-	// frameSplit := make([][]Range, numFriends)
-	// for i := 0; i < numFriends-1; i++ {
-	// 	frameSplit[i] = []Range{}
-	// 	frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
-	// }
-	// frameSplit[numFriends-1] = []Range{}
-	// frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
 	return frameSplit
 }
 

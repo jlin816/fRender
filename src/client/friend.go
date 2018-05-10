@@ -14,7 +14,6 @@ import (
 	"time"
 )
 
-//const masterAddress = "hello_world"
 const blenderPath = "/Applications/Blender/blender.app/Contents/MacOS/blender"
 
 type RenderFramesArgs struct {
@@ -63,22 +62,6 @@ func initFriend(username string, port int) *Friend {
 			go handler.ServeConn(cxn)
 		}
 	}()
-
-	// Hacky stuff from https://github.com/golang/go/issues/13395
-	// oldMux := http.DefaultServeMux
-	// mux := http.NewServeMux()
-	// http.DefaultServeMux = mux
-	//
-	// rpc.HandleHTTP()
-	//
-	// http.DefaultServeMux = oldMux
-	//
-	// rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// friend.rpcServer = rpcserver
-	// go http.Serve(friend.rpcServer, nil)
 
 	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
@@ -203,43 +186,7 @@ func (fr *Friend) registerWithMaster() {
 	fmt.Printf("friend registered w/master\n")
 }
 
-// func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) string {
-// 	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
-// 	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
-// 	outputFolder, _ := filepath.Abs(relativeFolder)
-// 	outputFiles := outputFolder + "/frame_#####"
-// 	absoluteFilepath, _ := filepath.Abs(fr.getLocalFilename(file))
-//
-// 	args := []string{
-// 		"-b",
-// 		absoluteFilepath,
-// 		"-F",
-// 		"PNG",
-// 		"-s",
-// 		fmt.Sprint(start_frame),
-// 		"-e",
-// 		fmt.Sprint(end_frame),
-// 		"-o",
-// 		outputFiles,
-// 		"-a",
-// 	}
-//
-// 	blenderCmd := exec.Command(blenderPath, args...)
-// 	err := blenderCmd.Run()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-// 	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
-// 	err1 := zipCmd.Run()
-// 	if err1 != nil {
-// 		panic(err1)
-// 	}
-// 	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
-// }
-
 func (fr *Friend) renderFrames(file string, frames []int) string {
-	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
 	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
 	outputFolder, _ := filepath.Abs(relativeFolder)
 	outputFiles := outputFolder + "/frame_#####"
@@ -293,6 +240,4 @@ func (fr *Friend) getLocalFilename(filename string) string {
 
 func arrayToString(a []int, delim string) string {
 	return strings.Trim(strings.Replace(fmt.Sprint(a), " ", delim, -1), "[]")
-	//return strings.Trim(strings.Join(strings.Split(fmt.Sprint(a), " "), delim), "[]")
-	//return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(a)), delim), "[]")
 }
