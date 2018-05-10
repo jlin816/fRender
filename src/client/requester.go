@@ -27,6 +27,7 @@ type Requester struct {
 	username   string
 	friends    []FriendData
 	masterAddr net.Addr
+    masterHttpClient    *rpc.Client
 	mu         sync.Mutex
 }
 
@@ -125,6 +126,8 @@ func (req *Requester) registerWithMaster() {
         fmt.Printf("Error registering requester: %v", err)
         panic(err)
     }
+
+    req.masterHttpClient = httpClient
 	fmt.Printf("Requester registered w/master!!\n")
 }
 
@@ -238,14 +241,16 @@ func (req *Requester) cancelJob() {
 }
 
 func (req *Requester) getFriendsFromMaster(n int) []string {
-	// TODO
+    args := StartJobArgs{NumFriends: n}
+    reply := StartJobReply{}
 
-	list := make([]string, 0)
-	list = append(list, "localhost:19993")
-	list = append(list, "localhost:19995")
-	list = append(list, "localhost:19997")
+    err := req.masterHttpClient.Call("Master.StartJob", args, &reply)
+    if err != nil {
+        fmt.Printf("Error calling StartJob to get friends from master: %v", err)
+    }
+    fmt.Printf("Got friends from master: %v", reply.Friends)
 
-	return list
+	return reply.Friends
 }
 
 func (req *Requester) getLocalFilename(filename string) string {
