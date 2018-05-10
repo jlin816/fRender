@@ -16,13 +16,21 @@ func assert(t *testing.T, condition bool, message string) {
 
 func TestRegisterClient(t *testing.T) {
     mr := master.NewMaster()
+    requesters := mr.GetAllRequesters()
+    friends := mr.GetAllFriends()
+    // Make sure master initially knows no requesters / friends.
+    assert(t, len(requesters) == 0, "Master initially knows no requesters")
+    assert(t, len(friends) == 0, "Master initially knows no friends")
+
     client.NewClient("client1")
     // Test that a client can register itself as a requester on the master.
-    requesters := mr.GetAllRequesters()
-    assert(t, len(requesters)== 1, "Master knows one requester")
+    requesters = mr.GetAllRequesters()
+    assert(t, len(requesters) == 1, "Master knows one requester")
 //    assert(t, requesters[0].username == "client1", "Master has registered tthe requester")
 
     // Test that a client can register itself as a friend on the master.
+    friends = mr.GetAllFriends()
+    assert(t, len(friends) == 1, "Master knows one friend")
 }
 
 func TestStartJobSuccess(t *testing.T) {
