@@ -12,7 +12,7 @@ type Client struct {
 func initClient(username string) *Client {
 	client := Client{username: username}
 
-	requester := initRequester(username, 19998, masterAddress)
+	requester := initRequester(username, masterAddress)
 	friend := initFriend(username, 19997)
 
 	client.fr = friend

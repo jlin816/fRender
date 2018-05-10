@@ -55,14 +55,14 @@ func initFriend(username string, port int) *Friend {
 
 	// http.DefaultServeMux = oldMux
 
-	rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 19996)) // TODO: update with actual port
+	rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
 	if err != nil {
 		os.Exit(1)
 	}
 	friend.rpcServer = rpcserver
 	go http.Serve(friend.rpcServer, nil)
 
-	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port)) // TODO: update with actual port
+	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		os.Exit(1)
 	}

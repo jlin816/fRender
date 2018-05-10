@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"master"
 	"testing"
-	"time"
 )
 
 func assert(t *testing.T, condition bool, message string) {
@@ -32,8 +31,8 @@ func TestStartJobSuccess(t *testing.T) {
 	cl := client.NewClient("client1")
 	cl.StartJob("file.blend")
 
-	timer1 := time.NewTimer(10 * time.Second)
-	<-timer1.C
+	// timer1 := time.NewTimer(10 * time.Second)
+	// <-timer1.C
 	// Test that a requester can get back n friends if there are n friends available.
 }
 

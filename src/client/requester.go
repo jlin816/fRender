@@ -128,11 +128,15 @@ func (req *Requester) registerWithMaster() {
 func (req *Requester) connectToFriends(friendAddresses []string) {
 	req.friends = make([]FriendData, 0)
 	for _, frAddress := range friendAddresses {
-		connection, err := net.Dial("tcp", frAddress+":19997") // TODO: Update port
+		connection, err := net.Dial("tcp", frAddress) // TODO: Update port
 		if err != nil {
 			panic(err)
 		}
-		rpcconn, err := rpc.DialHTTP("tcp", frAddress+":19996")
+
+		addrParts := strings.Split(frAddress, ":")
+		port, _ := strconv.ParseInt(addrParts[1], 0, 64)
+		rpcAddr := fmt.Sprintf("%v:%v", addrParts[0], port+1)
+		rpcconn, err := rpc.DialHTTP("tcp", rpcAddr)
 		if err != nil {
 			panic(err)
 		}
@@ -155,7 +159,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 // 	return frameSplit
 // }
 
-func (req *Requester) StartJob(filename string) {
+func (req *Requester) StartJob(filename string) bool {
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
@@ -194,6 +198,7 @@ func (req *Requester) StartJob(filename string) {
 		}
 	}
 	fmt.Println("all frames received...")
+	return true
 
 }
 
@@ -209,7 +214,7 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 	// TODO
 
 	list := make([]string, 0)
-	list = append(list, "localhost")
+	list = append(list, "localhost:19997")
 
 	return list
 }
