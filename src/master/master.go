@@ -28,17 +28,13 @@ type Master struct {
 }
 
 type FriendData struct {
-	id			int
     username    string
 	address		net.Addr
-//	writer		*bufio.Writer
-//	reader		*bufio.Reader
 	lastActive	time.Time
 	available	bool // alive and not busy
 }
 
 type RequesterData struct {
-    id          int
     username    string
 }
 
@@ -54,14 +50,13 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
 	}
 
     newFriend := FriendData {
-		id: len(mr.friends),
         username: args.Username,
 		address: addr,
 		available: true,
 		lastActive: time.Now(),
 	}
     mr.friends = append(mr.friends, newFriend)
-    fmt.Printf("Connected friend %d!\n", newFriend.id)
+    fmt.Printf("Connected friend %s!\n", newFriend.username)
 	reply.Success = true
 	return nil
 }
@@ -71,11 +66,10 @@ func (mr *Master) RegisterRequester(args RegisterRequesterArgs, reply *RegisterR
 	defer mr.mu.Unlock()
 
     newRequester := RequesterData {
-        id: len(mr.requesters),
         username: args.Username,
     }
     mr.requesters = append(mr.requesters, newRequester)
-    fmt.Printf("Connected new requester %d!\n", newRequester.id)
+    fmt.Printf("Connected new requester %s!\n", newRequester.username)
     reply.Success = true
 	return nil
 }
@@ -127,6 +121,10 @@ func NewMaster() *Master {
 
 func (mr *Master) GetAllRequesters() ([]RequesterData) {
     return mr.requesters
+}
+
+func (mr *Master) GetAllFriends() ([]FriendData) {
+    return mr.friends
 }
 
 // ====== PRIVATE METHODS =========
