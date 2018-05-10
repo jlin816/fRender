@@ -13,7 +13,7 @@ func initClient(username string, port int) *Client {
 	client := Client{username: username}
 
 	requester := initRequester(username, masterAddress)
-	friend := initFriend(username, 19997, masterAddress)
+	friend := initFriend(username, port, masterAddress)
 
 	client.fr = friend
 	client.req = requester

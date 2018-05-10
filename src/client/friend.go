@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "errors"
 	. "common"
 )
 
@@ -32,7 +33,7 @@ type Friend struct {
 	requesterConn net.Conn
 	server        net.Listener
 	available	  bool
-	httpClient	  *net.Client
+	httpClient	  *rpc.Client
     rpcServer     net.Listener
 }
 
@@ -56,7 +57,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	handler := rpc.NewServer()
 	handler.Register(&friend)
 	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
-	fmt.Printf("rpc server listening on %v", ln.Addr())
+	//fmt.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
 		panic(err)
 	}

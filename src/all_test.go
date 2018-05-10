@@ -25,7 +25,7 @@ func TestRegisterClient(t *testing.T) {
     assert(t, len(requesters) == 0, "Master initially knows no requesters")
     assert(t, len(friends) == 0, "Master initially knows no friends")
 
-    client.NewClient("client1")
+    client.NewClient("client1", 3000)
     // Test that a client can register itself as a requester on the master.
     requesters = mr.GetAllRequesters()
     assert(t, len(requesters) == 1, "Master knows one requester")
