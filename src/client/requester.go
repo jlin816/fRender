@@ -133,15 +133,19 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("tcp connected to %v\n", frAddress)
 
 		addrParts := strings.Split(frAddress, ":")
 		port, _ := strconv.ParseInt(addrParts[1], 0, 64)
 		rpcAddr := fmt.Sprintf("%v:%v", addrParts[0], port+1)
-		rpcconn, err := rpc.DialHTTP("tcp", rpcAddr)
+		rpcconn, err := rpc.Dial("tcp", rpcAddr)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("rpc connected to %v\n", frAddress)
+
 		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn})
+		fmt.Printf("connected to %v\n", frAddress)
 	}
 }
 
@@ -161,6 +165,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 // }
 
 func (req *Requester) StartJob(filename string) bool {
+	fmt.Println("start job...")
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
@@ -172,6 +177,8 @@ func (req *Requester) StartJob(filename string) bool {
 
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
+
+	fmt.Println("connected to friends...")
 
 	// determine frame split
 	// numFrames := 150 // TODO

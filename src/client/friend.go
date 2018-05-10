@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/rpc"
 	"os"
@@ -50,6 +51,17 @@ func initFriend(username string, port int) *Friend {
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		for {
+			cxn, err := ln.Accept()
+			if err != nil {
+				panic(err)
+			}
+			log.Printf("Server %d accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
+			go handler.ServeConn(cxn)
+		}
+	}()
 
 	// Hacky stuff from https://github.com/golang/go/issues/13395
 	// oldMux := http.DefaultServeMux
