@@ -4,11 +4,15 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-assert	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func assert(t *testing.T, condition bool, message string) {$/;"	func	line:10
-TestRegisterClient	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClient(t *testing.T) {$/;"	func	line:17
-TestStartJobSuccess	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccess(t *testing.T) {$/;"	func	line:29
-TestStartJobRetry	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobRetry(t *testing.T) {$/;"	func	line:39
-TestFriendStatusUpdates	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestFriendStatusUpdates(t *testing.T) {$/;"	func	line:43
-TestRequesterFriendCommunication	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRequesterFriendCommunication(t *testing.T) {$/;"	func	line:50
-TestReceiveFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestReceiveFrames(t *testing.T) {$/;"	func	line:55
-TestRenderFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRenderFrames(t *testing.T) {$/;"	func	line:59
+assert	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func assert(t *testing.T, condition bool, message string) {$/;"	func	line:12
+TestRegisterClient	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClient(t *testing.T) {$/;"	func	line:19
+TestRegisterClients	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClients(t *testing.T) {$/;"	func	line:31
+TestStartJobSuccessOneFriend	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessOneFriend(t *testing.T) {$/;"	func	line:45
+TestStartJobSuccessManyFriends	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessManyFriends(t *testing.T) {$/;"	func	line:57
+TestStartJobRetry	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobRetry(t *testing.T) {$/;"	func	line:71
+TestFriendStatusUpdates	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestFriendStatusUpdates(t *testing.T) {$/;"	func	line:75
+TestRequesterFriendCommunication	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRequesterFriendCommunication(t *testing.T) {$/;"	func	line:82
+TestReceiveFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestReceiveFrames(t *testing.T) {$/;"	func	line:87
+TestRenderFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRenderFrames(t *testing.T) {$/;"	func	line:91
+TestCleanup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestCleanup(t *testing.T) {$/;"	func	line:95
+startup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func startup(test string) {$/;"	func	line:101

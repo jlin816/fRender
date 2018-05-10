@@ -149,17 +149,17 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
-type Range struct{
+type Range struct {
 	start int
-	end int
+	end   int
 }
 
-func basicSplitFrames(numFrames int, numFriends int) [][]Range{
-	framesPerFriend := (numFrames + numFriends - 1)/numFriends
+func basicSplitFrames(numFrames int, numFriends int) [][]Range {
+	framesPerFriend := (numFrames + numFriends - 1) / numFriends
 	frameSplit := make([][]Range, numFriends)
 	for i := 0; i < numFriends-1; i++ {
 		frameSplit[i] = []Range{}
-		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i+1) * framesPerFriend})
+		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
 	}
 	frameSplit[numFriends-1] = []Range{}
 	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: numFriends * framesPerFriend, end: numFrames})

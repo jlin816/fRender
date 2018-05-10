@@ -4,6 +4,8 @@ import (
 	"client"
 	"fmt"
 	"master"
+	"os"
+	"os/exec"
 	"testing"
 )
 
@@ -40,7 +42,9 @@ func TestRegisterClients(t *testing.T) {
 	// fmt.Println("TEST REGISTER CLIENT")
 }
 
-func TestStartJobSuccessSingleFriend(t *testing.T) {
+func TestStartJobSuccessOneFriend(t *testing.T) {
+	startup("TestStartJobSuccessOneFriend")
+
 	_ = master.NewMaster()
 	cl := client.NewClient("client1", 19997)
 	cl.StartJob("file.blend")
@@ -51,6 +55,8 @@ func TestStartJobSuccessSingleFriend(t *testing.T) {
 }
 
 func TestStartJobSuccessManyFriends(t *testing.T) {
+	startup("TestStartJobSuccessManyFriends")
+
 	_ = master.NewMaster()
 	cl1 := client.NewClient("client1", 19997)
 	_ = client.NewClient("client2", 19995)
@@ -84,4 +90,21 @@ func TestReceiveFrames(t *testing.T) {
 
 func TestRenderFrames(t *testing.T) {
 	// Full integration: test when a job is requested, the requester gets back rendered frames.
+}
+
+func TestCleanup(t *testing.T) {
+	// handy function to cleanup files before pushing code! :)
+	os.RemoveAll("files/")
+	os.Mkdir("files/", os.ModePerm)
+}
+
+func startup(test string) {
+	os.RemoveAll("files/")
+	os.Mkdir("files/", os.ModePerm)
+
+	cpCmd := exec.Command("cp", "-a", fmt.Sprintf("testFiles/%v/.", test), "files/")
+	_, err := cpCmd.Output()
+	if err != nil {
+		panic(err)
+	}
 }
