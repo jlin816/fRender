@@ -58,7 +58,7 @@ func initFriend(username string, port int) *Friend {
 			if err != nil {
 				panic(err)
 			}
-			log.Printf("Server %d accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
+			log.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
 			go handler.ServeConn(cxn)
 		}
 	}()
