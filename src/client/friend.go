@@ -1,6 +1,8 @@
 package client
 
 import (
+	. "common"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-    "errors"
-	. "common"
 )
 
 const blenderPath = "/Applications/Blender/blender.app/Contents/MacOS/blender"
@@ -27,23 +27,23 @@ type RenderFramesArgs struct {
 
 type Friend struct {
 	me            int
-    username      string
-    port          int
-    masterAddr    net.Addr
+	username      string
+	port          int
+	masterAddr    net.Addr
 	requesterConn net.Conn
 	server        net.Listener
-	available	  bool
-	httpClient	  *rpc.Client
-    rpcServer     net.Listener
+	available     bool
+	httpClient    *rpc.Client
+	rpcServer     net.Listener
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
-    addr, err := net.ResolveTCPAddr("tcp", masterAddr)
-    if err != nil {
-        fmt.Printf("Invalid master addr %s", masterAddr)
-        panic(err)
-    }
-    friend := Friend{username: username, port: port, masterAddr: addr}
+	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
+	if err != nil {
+		fmt.Printf("Invalid master addr %s", masterAddr)
+		panic(err)
+	}
+	friend := Friend{username: username, port: port, masterAddr: addr}
 	friend.registerWithMaster()
 
 	//make local folder
@@ -52,12 +52,13 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 		os.Mkdir(path, os.ModePerm)
 	}
 
-    // Friends receive RPCs as well, init as a server
+	// Friends receive RPCs as well, init as a server
 	rpc.Register(&friend)
 	handler := rpc.NewServer()
 	handler.Register(&friend)
-	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
-	//fmt.Printf("rpc server listening on %v", ln.Addr())
+	myIP, _ := externalIP()
+	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%d", myIP, port+1))
+	fmt.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
 		panic(err)
 	}
@@ -73,12 +74,12 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 		}
 	}()
 
-	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
-    if err != nil {
+	server, err := net.Listen("tcp", fmt.Sprintf("%v:%d", myIP, port))
+	if err != nil {
 		panic(err)
 	}
 
-    friend.server = server
+	friend.server = server
 
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
@@ -173,9 +174,9 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 }
 
 func (fr *Friend) registerWithMaster() {
-    httpClient, err := rpc.DialHTTP("tcp", fr.masterAddr.String())
+	httpClient, err := rpc.DialHTTP("tcp", fr.masterAddr.String())
 	if err != nil {
-        fmt.Println("Couldn't connect friend to master")
+		fmt.Println("Couldn't connect friend to master")
 		panic(err)
 	}
 
@@ -184,13 +185,13 @@ func (fr *Friend) registerWithMaster() {
 		fmt.Println("Couldn't get IP addr for friend")
 		panic(err)
 	}
-    args := RegisterFriendArgs{Address: fmt.Sprintf("%s:%d", myIP, fr.port), Username: fr.username}
-    reply := RegisterFriendReply{}
-    err = httpClient.Call("Master.RegisterFriend", args, &reply)
-    if err != nil {
-        fmt.Printf("Error registering friend: %v", err)
-        panic(err)
-    }
+	args := RegisterFriendArgs{Address: fmt.Sprintf("%s:%d", myIP, fr.port), Username: fr.username}
+	reply := RegisterFriendReply{}
+	err = httpClient.Call("Master.RegisterFriend", args, &reply)
+	if err != nil {
+		fmt.Printf("Error registering friend: %v", err)
+		panic(err)
+	}
 
 	fr.httpClient = httpClient
 
@@ -231,7 +232,7 @@ func (fr *Friend) renderFrames(file string, frames []int) string {
 func (fr *Friend) sendHeartbeatsToMaster() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	for _ = range ticker.C {
-		args := HeartbeatArgs{Available: fr.available}
+		args := HeartbeatArgs{Available: fr.available, Username: fr.username}
 		reply := HeartbeatReply{}
 		err := fr.httpClient.Call("Master.Heartbeat", args, &reply)
 		if err != nil {
@@ -260,38 +261,38 @@ func arrayToString(a []int, delim string) string {
 
 // From https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
 func externalIP() (string, error) {
-    ifaces, err := net.Interfaces()
-    if err != nil {
-        return "", err
-    }
-    for _, iface := range ifaces {
-        if iface.Flags&net.FlagUp == 0 {
-            continue // interface down
-        }
-        if iface.Flags&net.FlagLoopback != 0 {
-            continue // loopback interface
-        }
-        addrs, err := iface.Addrs()
-        if err != nil {
-            return "", err
-        }
-        for _, addr := range addrs {
-            var ip net.IP
-            switch v := addr.(type) {
-            case *net.IPNet:
-                ip = v.IP
-            case *net.IPAddr:
-                ip = v.IP
-            }
-            if ip == nil || ip.IsLoopback() {
-                continue
-            }
-            ip = ip.To4()
-            if ip == nil {
-                continue // not an ipv4 address
-            }
-            return ip.String(), nil
-        }
-    }
-    return "", errors.New("are you connected to the network?")
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			ip = ip.To4()
+			if ip == nil {
+				continue // not an ipv4 address
+			}
+			return ip.String(), nil
+		}
+	}
+	return "", errors.New("are you connected to the network?")
 }
