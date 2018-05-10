@@ -149,20 +149,22 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
-// struct Range {
-// 	int start
-// 	int end
-// }
-//
-// func basicSplitFrames(int numFrames, int numFriends) {
-// 	framesPerFriend = math.Ceil(numFrames/numFriends)
-// 	frameSplit = make([]Range, numFriends)
-// 	for i := 0; i < numFriends-1; i++ {
-// 		frameSplit[i] = Range{start: i * framesPerFriend, end: (i+1) * framesPerFriend}
-// 	}
-// 	frameSplit[numFriends-1] = Range{start: numFriends * framesPerFriend, end: numFrames}
-// 	return frameSplit
-// }
+type Range struct{
+	start int
+	end int
+}
+
+func basicSplitFrames(numFrames int, numFriends int) [][]Range{
+	framesPerFriend := (numFrames + numFriends - 1)/numFriends
+	frameSplit := make([][]Range, numFriends)
+	for i := 0; i < numFriends-1; i++ {
+		frameSplit[i] = []Range{}
+		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i+1) * framesPerFriend})
+	}
+	frameSplit[numFriends-1] = []Range{}
+	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: numFriends * framesPerFriend, end: numFrames})
+	return frameSplit
+}
 
 func (req *Requester) StartJob(filename string) bool {
 	fmt.Println("start job...")
@@ -181,31 +183,31 @@ func (req *Requester) StartJob(filename string) bool {
 	fmt.Println("connected to friends...")
 
 	// determine frame split
-	// numFrames := 150 // TODO
-	// numFriends := len(req.friends)
-	// frameSplit = basicSplitFrames(numFrames, numFriends)
-
-	i := 0
+	numFrames := 150 // TODO
+	numFriends := len(req.friends)
+	frameSplit := basicSplitFrames(numFrames, numFriends)
 
 	// send file to each friend
-	for _, friend := range req.friends {
-		req.sendFile(friend.conn, filename)
+	for i, friend := range req.friends {
+		for _, r := range frameSplit[i] {
+			req.sendFile(friend.conn, filename)
 
-		args := RenderFramesArgs{StartFrame: i, EndFrame: i + 4, Filename: filename}
-		i += 5
-		var reply string
-		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
-		if err != nil {
-			log.Fatal("rpc error:", err)
-		}
-		fmt.Printf("reply: %v\n", reply)
-		req.receiveFile(friend.conn)
+			args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: filename}
+			i += 5
+			var reply string
+			err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
+			if err != nil {
+				log.Fatal("rpc error:", err)
+			}
+			fmt.Printf("reply: %v\n", reply)
+			req.receiveFile(friend.conn)
 
-		zipCmd := exec.Command("unzip", req.getLocalFilename(reply), "-d", outputFolder)
-		fmt.Printf("%v %v %v %v", "unzip", req.getLocalFilename(reply), "-d", outputFolder)
-		_, err1 := zipCmd.Output()
-		if err1 != nil {
-			panic(err1)
+			zipCmd := exec.Command("unzip", req.getLocalFilename(reply), "-d", outputFolder)
+			fmt.Printf("%v %v %v %v", "unzip", req.getLocalFilename(reply), "-d", outputFolder)
+			_, err1 := zipCmd.Output()
+			if err1 != nil {
+				panic(err1)
+			}
 		}
 	}
 	fmt.Println("all frames received...")
