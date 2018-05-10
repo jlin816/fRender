@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"net/rpc"
 	"os"
 	"os/exec"
@@ -44,33 +43,41 @@ func initFriend(username string, port int) *Friend {
 	}
 
 	friend.registerWithMaster()
-	rpc.Register(&friend)
+	handler := rpc.NewServer()
+	handler.Register(&friend)
+	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
+	fmt.Printf("rpc server listening on %v", ln.Addr())
+	if err != nil {
+		panic(err)
+	}
 
 	// Hacky stuff from https://github.com/golang/go/issues/13395
 	// oldMux := http.DefaultServeMux
 	// mux := http.NewServeMux()
 	// http.DefaultServeMux = mux
-
-	rpc.HandleHTTP()
-
+	//
+	// rpc.HandleHTTP()
+	//
 	// http.DefaultServeMux = oldMux
-
-	rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
-	if err != nil {
-		os.Exit(1)
-	}
-	friend.rpcServer = rpcserver
-	go http.Serve(friend.rpcServer, nil)
+	//
+	// rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port+1))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// friend.rpcServer = rpcserver
+	// go http.Serve(friend.rpcServer, nil)
 
 	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 	friend.server = server
 
 	go friend.listenMaster()
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
+
+	fmt.Printf("friend initialised %v\n", username)
 
 	return &friend
 }
@@ -147,7 +154,6 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argument
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
-	fmt.Printf("file received\n")
 
 	connection.Read(bufferFileSize)
 	fileSize, _ := strconv.ParseInt(strings.Trim(string(bufferFileSize), ":"), 10, 64)
@@ -156,6 +162,7 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 	fileName := strings.Trim(string(bufferFileName), ":")
 	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
+	fmt.Printf("file received %v\n", fileName)
 
 	if err != nil {
 		panic(err)

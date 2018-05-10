@@ -43,6 +43,7 @@ func initRequester(username string, masterAddr string) *Requester {
 	}
 	// go requester.listenOnSocket()
 	// requester.startJob()
+	fmt.Printf("requester initialised %v\n", username)
 
 	return &requester
 }
@@ -177,11 +178,14 @@ func (req *Requester) StartJob(filename string) bool {
 	// numFriends := len(req.friends)
 	// frameSplit = basicSplitFrames(numFrames, numFriends)
 
+	i := 0
+
 	// send file to each friend
 	for _, friend := range req.friends {
 		req.sendFile(friend.conn, filename)
 
-		args := RenderFramesArgs{StartFrame: 0, EndFrame: 1, Filename: filename}
+		args := RenderFramesArgs{StartFrame: i, EndFrame: i + 4, Filename: filename}
+		i += 5
 		var reply string
 		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
 		if err != nil {
@@ -214,6 +218,8 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 	// TODO
 
 	list := make([]string, 0)
+	list = append(list, "localhost:19993")
+	list = append(list, "localhost:19995")
 	list = append(list, "localhost:19997")
 
 	return list

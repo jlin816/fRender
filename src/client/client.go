@@ -9,11 +9,11 @@ type Client struct {
 	req      *Requester
 }
 
-func initClient(username string) *Client {
+func initClient(username string, port int) *Client {
 	client := Client{username: username}
 
 	requester := initRequester(username, masterAddress)
-	friend := initFriend(username, 19997)
+	friend := initFriend(username, port)
 
 	client.fr = friend
 	client.req = requester
@@ -21,8 +21,8 @@ func initClient(username string) *Client {
 	return &client
 }
 
-func NewClient(username string) *Client {
-	return initClient(username)
+func NewClient(username string, port int) *Client {
+	return initClient(username, port)
 }
 
 func (cl *Client) StartJob(filename string) {
