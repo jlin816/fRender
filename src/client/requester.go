@@ -112,7 +112,7 @@ func (req *Requester) receiveFile() { // maybe want port as argument
 func (req *Requester) registerWithMaster() {
     httpClient, err := rpc.DialHTTP("tcp", req.masterAddr.String())
     if err != nil {
-        fmt.Println("Couldn't register requester with master")
+        fmt.Println("Couldn't connect requester to master")
         panic(err)
     }
 
@@ -120,7 +120,7 @@ func (req *Requester) registerWithMaster() {
     reply := RegisterFriendReply{}
     err = httpClient.Call("Master.RegisterRequester", args, &reply)
     if err != nil {
-        fmt.Printf("Error registering: %v", err)
+        fmt.Printf("Error registering requester: %v", err)
         panic(err)
     }
 	fmt.Printf("Requester registered w/master!!\n")

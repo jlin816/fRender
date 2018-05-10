@@ -13,7 +13,7 @@ func initClient(username string) *Client {
     client := Client{username: username}
 
 	requester := initRequester(username, 19998, masterAddress)
-	friend := initFriend(username, 19997)
+	friend := initFriend(username, 19997, masterAddress)
 
 	client.fr = friend
 	client.req = requester
