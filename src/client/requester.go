@@ -156,15 +156,43 @@ type Range struct {
 	end   int
 }
 
-func basicSplitFrames(numFrames int, numFriends int) [][]Range {
+// func basicSplitFrames(numFrames int, numFriends int) [][]Range {
+// 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
+// 	frameSplit := make([][]Range, numFriends)
+// 	for i := 0; i < numFriends-1; i++ {
+// 		frameSplit[i] = []Range{}
+// 		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
+// 	}
+// 	frameSplit[numFriends-1] = []Range{}
+// 	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
+// 	return frameSplit
+// }
+
+func basicSplitFrames(numFrames int, numFriends int) [][]int {
 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
-	frameSplit := make([][]Range, numFriends)
-	for i := 0; i < numFriends-1; i++ {
-		frameSplit[i] = []Range{}
-		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
+	frameSplit := make([][]int, numFriends)
+	for x := 0; x < numFriends; x++ {
+		fmt.Println(frameSplit[x])
+		frameSplit[x] = make([]int, 0)
+		fmt.Println(frameSplit[x])
 	}
-	frameSplit[numFriends-1] = []Range{}
-	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
+
+	friend := -1
+	for i := 0; i <= numFrames; i++ {
+		if i%framesPerFriend == 0 && friend < (numFriends-1) {
+			friend += 1
+		}
+		fmt.Println(friend)
+		frameSplit[friend] = append(frameSplit[friend], i)
+	}
+	fmt.Print(frameSplit)
+	// frameSplit := make([][]Range, numFriends)
+	// for i := 0; i < numFriends-1; i++ {
+	// 	frameSplit[i] = []Range{}
+	// 	frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
+	// }
+	// frameSplit[numFriends-1] = []Range{}
+	// frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
 	return frameSplit
 }
 
@@ -200,30 +228,30 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 
 }
 
-func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frameSplit []Range, wg *sync.WaitGroup) {
+func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, wg *sync.WaitGroup) {
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
-	for _, r := range frameSplit {
-		req.sendFile(friend.conn, filename)
+	req.sendFile(friend.conn, filename)
 
-		args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: filename}
-		fmt.Println(args)
-		var reply string
-		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
-		if err != nil {
-			log.Fatal("rpc error:", err)
-		}
-		fmt.Printf("reply: %v\n", reply)
-		req.receiveFile(friend.conn)
+	args := RenderFramesArgs{Filename: filename}
+	args.Frames = frames
 
-		req.mu.Lock()
-		zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
-		fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
-		err1 := zipCmd.Run()
-		if err1 != nil {
-			panic(err1)
-		}
-		req.mu.Unlock()
+	fmt.Println(args)
+	var reply string
+	err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
+	if err != nil {
+		log.Fatal("rpc error:", err)
 	}
+	fmt.Printf("reply: %v\n", reply)
+	req.receiveFile(friend.conn)
+
+	req.mu.Lock()
+	zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+	fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+	err1 := zipCmd.Run()
+	if err1 != nil {
+		panic(err1)
+	}
+	req.mu.Unlock()
 	wg.Done()
 }
 

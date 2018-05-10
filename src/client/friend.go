@@ -21,6 +21,7 @@ type RenderFramesArgs struct {
 	StartFrame int
 	EndFrame   int
 	Filename   string
+	Frames     []int
 }
 
 type Friend struct {
@@ -279,11 +280,7 @@ func (fr *Friend) sendHeartbeatsToMaster() {
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	fmt.Printf("rendering frames\n")
-	frames := make([]int, 0)
-	for i := args.StartFrame; i <= args.EndFrame; i++ {
-		frames = append(frames, i)
-	}
-	file := fr.renderFrames(args.Filename, frames)
+	file := fr.renderFrames(args.Filename, args.Frames)
 	fr.sendFile(fr.requesterConn, file)
 	fmt.Println(file)
 	*reply = file
