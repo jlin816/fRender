@@ -97,6 +97,19 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 	return errors.New("Not enough active friends")
 }
 
+func (mr *Master) Heartbeat(args HeartbeatArgs, reply *HeartbeatReply) error {
+    mr.mu.Lock()
+    defer mr.mu.Unlock()
+
+    for _, friend := range mr.friends {
+        if friend.username == args.Username {
+            friend.lastActive = time.Now()
+            return nil
+        }
+    }
+    return errors.New("Friend not found??")
+}
+
 // ======= PUBLIC METHODS =========
 
 func NewMaster() *Master {

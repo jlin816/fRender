@@ -25,3 +25,11 @@ type RegisterRequesterArgs struct {
 type RegisterRequesterReply struct {
 	Success		bool
 }
+
+type HeartbeatArgs struct {
+    Username    string
+    Available   bool
+}
+
+type HeartbeatReply struct {
+}
