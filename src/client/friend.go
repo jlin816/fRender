@@ -117,7 +117,6 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	// defer connection.Close()
 	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
@@ -146,11 +145,6 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 }
 
 func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argument
-	// connection, err := net.Dial("tcp", "localhost:27001") // TODO: Update port
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer connection.Close()
 	bufferFileName := make([]byte, 64)
 	bufferFileSize := make([]byte, 10)
 	fmt.Printf("file received\n")
@@ -187,10 +181,6 @@ func (fr *Friend) registerWithMaster() {
 	}
 	fr.masterConn = connection
 	fmt.Printf("friend registered w/master\n")
-}
-
-func (fr *Friend) receiveJob() {
-
 }
 
 func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) string {

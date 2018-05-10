@@ -24,18 +24,17 @@ type FriendData struct {
 type Requester struct {
 	me         int
 	username   string
-	port       int
 	friends    []FriendData
 	masterAddr net.Addr
 }
 
-func initRequester(username string, port int, masterAddr string) *Requester {
+func initRequester(username string, masterAddr string) *Requester {
 	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
 	if err != nil {
 		fmt.Printf("Invalid master addr %s", masterAddr)
 		panic(err)
 	}
-	requester := Requester{username: username, port: port, masterAddr: addr}
+	requester := Requester{username: username, masterAddr: addr}
 	requester.registerWithMaster()
 
 	path := requester.getLocalFilename("")
@@ -46,10 +45,6 @@ func initRequester(username string, port int, masterAddr string) *Requester {
 	// requester.startJob()
 
 	return &requester
-}
-
-func (req *Requester) listenOnSocket() {
-	// call receiveJob here somewhere??
 }
 
 func (req *Requester) sendFile(connection net.Conn, filename string) {
