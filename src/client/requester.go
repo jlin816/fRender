@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const BUFFERSIZE = 1024
@@ -168,6 +169,7 @@ func basicSplitFrames(numFrames int, numFriends int) [][]Range {
 
 func (req *Requester) StartJob(filename string, numFrames int) bool {
 	fmt.Println("start job...")
+	var wg sync.WaitGroup
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
@@ -188,30 +190,38 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 
 	// send file to each friend
 	for i, friend := range req.friends {
-		for _, r := range frameSplit[i] {
-			req.sendFile(friend.conn, filename)
-
-			args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: filename}
-			fmt.Println(args)
-			var reply string
-			err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
-			if err != nil {
-				log.Fatal("rpc error:", err)
-			}
-			fmt.Printf("reply: %v\n", reply)
-			req.receiveFile(friend.conn)
-
-			zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
-			fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
-			err1 := zipCmd.Run()
-			if err1 != nil {
-				panic(err1)
-			}
-		}
+		wg.Add(1)
+		go req.renderFramesOnFriend(filename, friend, frameSplit[i], &wg)
 	}
+	wg.Wait()
 	fmt.Println("all frames received...")
 	return true
 
+}
+
+func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frameSplit []Range, wg *sync.WaitGroup) {
+	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
+	for _, r := range frameSplit {
+		req.sendFile(friend.conn, filename)
+
+		args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: filename}
+		fmt.Println(args)
+		var reply string
+		err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
+		if err != nil {
+			log.Fatal("rpc error:", err)
+		}
+		fmt.Printf("reply: %v\n", reply)
+		req.receiveFile(friend.conn)
+
+		zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+		fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+		err1 := zipCmd.Run()
+		if err1 != nil {
+			panic(err1)
+		}
+	}
+	wg.Done()
 }
 
 func (req *Requester) getProgress() {
