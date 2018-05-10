@@ -145,6 +145,21 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
+// struct Range {
+// 	int start
+// 	int end
+// }
+//
+// func basicSplitFrames(int numFrames, int numFriends) {
+// 	framesPerFriend = math.Ceil(numFrames/numFriends)
+// 	frameSplit = make([]Range, numFriends)
+// 	for i := 0; i < numFriends-1; i++ {
+// 		frameSplit[i] = Range{start: i * framesPerFriend, end: (i+1) * framesPerFriend}
+// 	}
+// 	frameSplit[numFriends-1] = Range{start: numFriends * framesPerFriend, end: numFrames}
+// 	return frameSplit
+// }
+
 func (req *Requester) StartJob(filename string) {
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
@@ -159,6 +174,9 @@ func (req *Requester) StartJob(filename string) {
 	req.connectToFriends(friendAddresses)
 
 	// determine frame split
+	// numFrames := 150 // TODO
+	// numFriends := len(req.friends)
+	// frameSplit = basicSplitFrames(numFrames, numFriends)
 
 	// send file to each friend
 	for _, friend := range req.friends {
