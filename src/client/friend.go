@@ -202,7 +202,42 @@ func (fr *Friend) registerWithMaster() {
 	fmt.Printf("friend registered w/master\n")
 }
 
-func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) string {
+// func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) string {
+// 	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
+// 	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
+// 	outputFolder, _ := filepath.Abs(relativeFolder)
+// 	outputFiles := outputFolder + "/frame_#####"
+// 	absoluteFilepath, _ := filepath.Abs(fr.getLocalFilename(file))
+//
+// 	args := []string{
+// 		"-b",
+// 		absoluteFilepath,
+// 		"-F",
+// 		"PNG",
+// 		"-s",
+// 		fmt.Sprint(start_frame),
+// 		"-e",
+// 		fmt.Sprint(end_frame),
+// 		"-o",
+// 		outputFiles,
+// 		"-a",
+// 	}
+//
+// 	blenderCmd := exec.Command(blenderPath, args...)
+// 	err := blenderCmd.Run()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+//
+// 	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
+// 	err1 := zipCmd.Run()
+// 	if err1 != nil {
+// 		panic(err1)
+// 	}
+// 	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
+// }
+
+func (fr *Friend) renderFrames(file string, frames []int) string {
 	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
 	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
 	outputFolder, _ := filepath.Abs(relativeFolder)
@@ -214,13 +249,10 @@ func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) stri
 		absoluteFilepath,
 		"-F",
 		"PNG",
-		"-s",
-		fmt.Sprint(start_frame),
-		"-e",
-		fmt.Sprint(end_frame),
 		"-o",
 		outputFiles,
-		"-a",
+		"-f",
+		arrayToString(frames, ","),
 	}
 
 	blenderCmd := exec.Command(blenderPath, args...)
@@ -247,7 +279,11 @@ func (fr *Friend) sendHeartbeatsToMaster() {
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	fmt.Printf("rendering frames\n")
-	file := fr.renderFrames(args.Filename, args.StartFrame, args.EndFrame)
+	frames := make([]int, 0)
+	for i := args.StartFrame; i <= args.EndFrame; i++ {
+		frames = append(frames, i)
+	}
+	file := fr.renderFrames(args.Filename, frames)
 	fr.sendFile(fr.requesterConn, file)
 	fmt.Println(file)
 	*reply = file
@@ -256,4 +292,10 @@ func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 
 func (fr *Friend) getLocalFilename(filename string) string {
 	return "files/" + fr.username + "_friend/" + filename
+}
+
+func arrayToString(a []int, delim string) string {
+	return strings.Trim(strings.Replace(fmt.Sprint(a), " ", delim, -1), "[]")
+	//return strings.Trim(strings.Join(strings.Split(fmt.Sprint(a), " "), delim), "[]")
+	//return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(a)), delim), "[]")
 }
