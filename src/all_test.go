@@ -3,6 +3,7 @@ package main
 import (
 	"client"
 	"fmt"
+	"io/ioutil"
 	"master"
 	"os"
 	"os/exec"
@@ -47,7 +48,7 @@ func TestStartJobSuccessOneFriend(t *testing.T) {
 
 	_ = master.NewMaster()
 	cl := client.NewClient("client1", 19997)
-	cl.StartJob("file.blend")
+	cl.StartJob("file.blend", 15)
 
 	// timer1 := time.NewTimer(10 * time.Second)
 	// <-timer1.C
@@ -56,12 +57,16 @@ func TestStartJobSuccessOneFriend(t *testing.T) {
 
 func TestStartJobSuccessManyFriends(t *testing.T) {
 	startup("TestStartJobSuccessManyFriends")
+	numFrames := 6
 
 	_ = master.NewMaster()
 	cl1 := client.NewClient("client1", 19997)
 	_ = client.NewClient("client2", 19995)
 	_ = client.NewClient("client3", 19993)
-	cl1.StartJob("file.blend")
+	cl1.StartJob("file.blend", numFrames)
+
+	files, _ := ioutil.ReadDir("files/client1_requester/file.blend_frames")
+	assert(t, len(files) == (numFrames+1), "Rendered all the frames!")
 
 	// timer1 := time.NewTimer(10 * time.Second)
 	// <-timer1.C

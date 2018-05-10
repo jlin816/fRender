@@ -162,11 +162,11 @@ func basicSplitFrames(numFrames int, numFriends int) [][]Range {
 		frameSplit[i] = append(frameSplit[i], Range{start: i * framesPerFriend, end: (i + 1) * framesPerFriend})
 	}
 	frameSplit[numFriends-1] = []Range{}
-	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: numFriends * framesPerFriend, end: numFrames})
+	frameSplit[numFriends-1] = append(frameSplit[numFriends-1], Range{start: (numFriends - 1) * framesPerFriend, end: numFrames})
 	return frameSplit
 }
 
-func (req *Requester) StartJob(filename string) bool {
+func (req *Requester) StartJob(filename string, numFrames int) bool {
 	fmt.Println("start job...")
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
@@ -183,7 +183,6 @@ func (req *Requester) StartJob(filename string) bool {
 	fmt.Println("connected to friends...")
 
 	// determine frame split
-	numFrames := 150 // TODO
 	numFriends := len(req.friends)
 	frameSplit := basicSplitFrames(numFrames, numFriends)
 
@@ -193,7 +192,7 @@ func (req *Requester) StartJob(filename string) bool {
 			req.sendFile(friend.conn, filename)
 
 			args := RenderFramesArgs{StartFrame: r.start, EndFrame: r.end, Filename: filename}
-			i += 5
+			fmt.Println(args)
 			var reply string
 			err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
 			if err != nil {
@@ -202,9 +201,9 @@ func (req *Requester) StartJob(filename string) bool {
 			fmt.Printf("reply: %v\n", reply)
 			req.receiveFile(friend.conn)
 
-			zipCmd := exec.Command("unzip", req.getLocalFilename(reply), "-d", outputFolder)
-			fmt.Printf("%v %v %v %v", "unzip", req.getLocalFilename(reply), "-d", outputFolder)
-			_, err1 := zipCmd.Output()
+			zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+			fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+			err1 := zipCmd.Run()
 			if err1 != nil {
 				panic(err1)
 			}

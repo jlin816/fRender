@@ -224,13 +224,13 @@ func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) stri
 	}
 
 	blenderCmd := exec.Command(blenderPath, args...)
-	_, err := blenderCmd.Output()
+	err := blenderCmd.Run()
 	if err != nil {
 		panic(err)
 	}
 
 	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
-	_, err1 := zipCmd.Output()
+	err1 := zipCmd.Run()
 	if err1 != nil {
 		panic(err1)
 	}

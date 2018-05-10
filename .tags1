@@ -4,15 +4,19 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-assert	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func assert(t *testing.T, condition bool, message string) {$/;"	func	line:12
-TestRegisterClient	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClient(t *testing.T) {$/;"	func	line:19
-TestRegisterClients	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClients(t *testing.T) {$/;"	func	line:31
-TestStartJobSuccessOneFriend	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessOneFriend(t *testing.T) {$/;"	func	line:45
-TestStartJobSuccessManyFriends	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessManyFriends(t *testing.T) {$/;"	func	line:57
-TestStartJobRetry	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobRetry(t *testing.T) {$/;"	func	line:71
-TestFriendStatusUpdates	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestFriendStatusUpdates(t *testing.T) {$/;"	func	line:75
-TestRequesterFriendCommunication	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRequesterFriendCommunication(t *testing.T) {$/;"	func	line:82
-TestReceiveFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestReceiveFrames(t *testing.T) {$/;"	func	line:87
-TestRenderFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRenderFrames(t *testing.T) {$/;"	func	line:91
-TestCleanup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestCleanup(t *testing.T) {$/;"	func	line:95
-startup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func startup(test string) {$/;"	func	line:101
+FriendData	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type FriendData struct {$/;"	type	line:18
+Requester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type Requester struct {$/;"	type	line:24
+initRequester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func initRequester(username string, masterAddr string) *Requester {$/;"	func	line:31
+sendFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) sendFile(connection net.Conn, filename string) {$/;"	func	line:51
+receiveFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) receiveFile(connection net.Conn) {$/;"	func	line:82
+receivedBytes	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var receivedBytes int64$/;"	var	line:99
+registerWithMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) registerWithMaster() {$/;"	func	line:112
+connectToFriends	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) connectToFriends(friendAddresses []string) {$/;"	func	line:129
+Range	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type Range struct {$/;"	type	line:152
+basicSplitFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func basicSplitFrames(numFrames int, numFriends int) [][]Range {$/;"	func	line:157
+StartJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) StartJob(filename string, numFrames int) bool {$/;"	func	line:169
+reply	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^			var reply string$/;"	var	line:196
+getProgress	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getProgress() {$/;"	func	line:217
+cancelJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) cancelJob() {$/;"	func	line:221
+getFriendsFromMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getFriendsFromMaster(n int) []string {$/;"	func	line:225
+getLocalFilename	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getLocalFilename(filename string) string {$/;"	func	line:236

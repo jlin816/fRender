@@ -25,6 +25,6 @@ func NewClient(username string, port int) *Client {
 	return initClient(username, port)
 }
 
-func (cl *Client) StartJob(filename string) {
-	cl.req.StartJob(filename)
+func (cl *Client) StartJob(filename string, numFrames int) {
+	cl.req.StartJob(filename, numFrames)
 }
