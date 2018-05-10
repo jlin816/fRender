@@ -25,38 +25,48 @@ type RenderFramesArgs struct {
 
 type Friend struct {
 	me            int
-    username      string
-    port          int
+	username      string
+	port          int
 	masterConn    net.Conn
 	requesterConn net.Conn
 	server        net.Listener
+	rpcServer     net.Listener
 	Busy          bool
 }
 
 func initFriend(username string, port int) *Friend {
-    friend := Friend{port: port}
+	friend := Friend{port: port, username: username}
+
+	//make local folder
+	path := friend.getLocalFilename("")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, os.ModePerm)
+	}
 
 	friend.registerWithMaster()
 	rpc.Register(&friend)
 
-    // Hacky stuff from https://github.com/golang/go/issues/13395
-    oldMux := http.DefaultServeMux
-    mux := http.NewServeMux()
-    http.DefaultServeMux = mux
+	// Hacky stuff from https://github.com/golang/go/issues/13395
+	// oldMux := http.DefaultServeMux
+	// mux := http.NewServeMux()
+	// http.DefaultServeMux = mux
 
 	rpc.HandleHTTP()
 
-    http.DefaultServeMux = oldMux
-	fmt.Printf("xyz")
+	// http.DefaultServeMux = oldMux
+
+	rpcserver, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 19996)) // TODO: update with actual port
+	if err != nil {
+		os.Exit(1)
+	}
+	friend.rpcServer = rpcserver
+	go http.Serve(friend.rpcServer, nil)
 
 	server, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port)) // TODO: update with actual port
 	if err != nil {
 		os.Exit(1)
 	}
-
-	fmt.Printf("abc")
 	friend.server = server
-	go http.Serve(server, nil)
 
 	go friend.listenMaster()
 	go friend.sendHeartbeatsToMaster()
@@ -107,7 +117,8 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	defer connection.Close()
+	// defer connection.Close()
+	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -149,6 +160,7 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 
 	connection.Read(bufferFileName)
 	fileName := strings.Trim(string(bufferFileName), ":")
+	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
 
 	if err != nil {
@@ -181,11 +193,12 @@ func (fr *Friend) receiveJob() {
 
 }
 
-func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
+func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) string {
 	// blender -b bob_lamp_update_export.blend -s 0 -e 100 -o render_files/frame_##### -a
-
-	output_folder, _ := filepath.Abs(fmt.Sprintf("%v_frames/frame_#####", file))
-	absoluteFilepath, _ := filepath.Abs(file)
+	relativeFolder := fr.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, fr.username))
+	outputFolder, _ := filepath.Abs(relativeFolder)
+	outputFiles := outputFolder + "/frame_#####"
+	absoluteFilepath, _ := filepath.Abs(fr.getLocalFilename(file))
 
 	args := []string{
 		"-b",
@@ -197,7 +210,7 @@ func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
 		"-e",
 		fmt.Sprint(end_frame),
 		"-o",
-		output_folder,
+		outputFiles,
 		"-a",
 	}
 
@@ -207,6 +220,12 @@ func (fr *Friend) renderFrames(file string, start_frame int, end_frame int) {
 		panic(err)
 	}
 
+	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
+	_, err1 := zipCmd.Output()
+	if err1 != nil {
+		panic(err1)
+	}
+	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
 }
 
 func (fr *Friend) sendHeartbeatsToMaster() {
@@ -217,14 +236,15 @@ func (fr *Friend) sendHeartbeatsToMaster() {
 	}
 }
 
-func (fr *Friend) PrintHello(args int, reply *int) error {
-	fmt.Printf("HIYA\n")
-	*reply = 100
+func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
+	fmt.Printf("rendering frames\n")
+	file := fr.renderFrames(args.Filename, args.StartFrame, args.EndFrame)
+	fr.sendFile(fr.requesterConn, file)
+	fmt.Println(file)
+	*reply = file
 	return nil
 }
 
-func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *int) error {
-	fmt.Printf("rendering frames\n")
-	fr.renderFrames(args.Filename, args.StartFrame, args.EndFrame)
-	return nil
+func (fr *Friend) getLocalFilename(filename string) string {
+	return "files/" + fr.username + "_friend/" + filename
 }
