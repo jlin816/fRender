@@ -27,6 +27,7 @@ type Requester struct {
 	username   string
 	friends    []FriendData
 	masterAddr net.Addr
+	mu         sync.Mutex
 }
 
 func initRequester(username string, masterAddr string) *Requester {
@@ -214,12 +215,14 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 		fmt.Printf("reply: %v\n", reply)
 		req.receiveFile(friend.conn)
 
+		req.mu.Lock()
 		zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
 		fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
 		err1 := zipCmd.Run()
 		if err1 != nil {
 			panic(err1)
 		}
+		req.mu.Unlock()
 	}
 	wg.Done()
 }
