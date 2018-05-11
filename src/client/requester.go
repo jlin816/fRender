@@ -178,7 +178,7 @@ func basicSplitFrames(numFrames int, numFriends int) [][]int {
 	return frameSplit
 }
 
-func (req *Requester) StartJob(filename string, numFrames int) bool {
+func (req *Requester) StartJob(filename string, numFrames int, numFriends int) bool {
 	fmt.Println("start job...")
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
@@ -187,7 +187,7 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 	}
 
 	// get list of friends
-	friendAddresses := req.getFriendsFromMaster(3) //TODO not just one friend LOL
+	friendAddresses := req.getFriendsFromMaster(numFriends) //TODO not just one friend LOL
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
 	fmt.Println("connected to friends...")
@@ -204,7 +204,6 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 	}()
 
 	// determine frame split
-	numFriends := len(req.friends)
 	frameSplit := basicSplitFrames(numFrames, numFriends)
 
 	for i := 0; i < len(frameSplit); i++ {

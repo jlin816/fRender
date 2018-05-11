@@ -14,13 +14,13 @@ receivedBytes	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go
 registerWithMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) registerWithMaster() {$/;"	func	line:125
 connectToFriends	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) connectToFriends(friendAddresses []string) {$/;"	func	line:144
 basicSplitFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func basicSplitFrames(numFrames int, numFriends int) [][]int {$/;"	func	line:167
-StartJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) StartJob(filename string, numFrames int) bool {$/;"	func	line:181
+StartJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) StartJob(filename string, numFrames int, numFriends int) bool {$/;"	func	line:181
 tasks	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var tasks Tasks$/;"	var	line:196
 wg	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var wg sync.WaitGroup$/;"	var	line:197
-verifyFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func verifyFrames(filepath1 string, filepath2 string) bool {$/;"	func	line:239
-renderFramesOnFriend	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, tasks *Tasks, taskNum int) {$/;"	func	line:275
-reply	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var reply string$/;"	var	line:284
-getProgress	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getProgress() {$/;"	func	line:316
-cancelJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) cancelJob() {$/;"	func	line:320
-getFriendsFromMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getFriendsFromMaster(n int) []string {$/;"	func	line:324
-getLocalFilename	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getLocalFilename(filename string) string {$/;"	func	line:337
+verifyFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func verifyFrames(filepath1 string, filepath2 string) bool {$/;"	func	line:238
+renderFramesOnFriend	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, tasks *Tasks, taskNum int) {$/;"	func	line:274
+reply	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var reply string$/;"	var	line:283
+getProgress	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getProgress() {$/;"	func	line:315
+cancelJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) cancelJob() {$/;"	func	line:319
+getFriendsFromMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getFriendsFromMaster(n int) []string {$/;"	func	line:323
+getLocalFilename	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getLocalFilename(filename string) string {$/;"	func	line:336

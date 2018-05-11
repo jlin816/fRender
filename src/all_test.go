@@ -18,22 +18,22 @@ func assert(t *testing.T, condition bool, message string) {
 }
 
 func TestRegisterClient(t *testing.T) {
-    mr := master.NewMaster()
-    requesters := mr.GetAllRequesters()
-    friends := mr.GetAllFriends()
-    // Make sure master initially knows no requesters / friends.
-    assert(t, len(requesters) == 0, "Master initially knows no requesters")
-    assert(t, len(friends) == 0, "Master initially knows no friends")
+	mr := master.NewMaster()
+	requesters := mr.GetAllRequesters()
+	friends := mr.GetAllFriends()
+	// Make sure master initially knows no requesters / friends.
+	assert(t, len(requesters) == 0, "Master initially knows no requesters")
+	assert(t, len(friends) == 0, "Master initially knows no friends")
 
-    client.NewClient("client1", 3000)
-    // Test that a client can register itself as a requester on the master.
-    requesters = mr.GetAllRequesters()
-    assert(t, len(requesters) == 1, "Master knows one requester")
-//    assert(t, requesters[0].username == "client1", "Master has registered tthe requester")
+	client.NewClient("client1", 3000)
+	// Test that a client can register itself as a requester on the master.
+	requesters = mr.GetAllRequesters()
+	assert(t, len(requesters) == 1, "Master knows one requester")
+	//    assert(t, requesters[0].username == "client1", "Master has registered tthe requester")
 
-    // Test that a client can register itself as a friend on the master.
-    friends = mr.GetAllFriends()
-    assert(t, len(friends) == 1, "Master knows one friend")
+	// Test that a client can register itself as a friend on the master.
+	friends = mr.GetAllFriends()
+	assert(t, len(friends) == 1, "Master knows one friend")
 }
 
 func TestRegisterClients(t *testing.T) {
@@ -52,11 +52,14 @@ func TestRegisterClients(t *testing.T) {
 
 func TestStartJobSuccessOneFriend(t *testing.T) {
 	startup("TestStartJobSuccessOneFriend")
+	numFrames := 6
 
 	_ = master.NewMaster()
-	cl := client.NewClient("client1", 19997)
-	cl.StartJob("file.blend", 15)
+	cl1 := client.NewClient("client1", 19997)
+	cl1.StartJob("file.blend", numFrames, 1)
 
+	files, _ := ioutil.ReadDir("files/client1_requester/file.blend_frames")
+	assert(t, len(files) == (numFrames+1), "Rendered all the frames!")
 	// timer1 := time.NewTimer(10 * time.Second)
 	// <-timer1.C
 	// Test that a requester can get back n friends if there are n friends available.
@@ -70,7 +73,7 @@ func TestStartJobSuccessManyFriends(t *testing.T) {
 	cl1 := client.NewClient("client1", 19997)
 	_ = client.NewClient("client2", 19995)
 	_ = client.NewClient("client3", 19993)
-	cl1.StartJob("file.blend", numFrames)
+	cl1.StartJob("file.blend", numFrames, 3)
 
 	files, _ := ioutil.ReadDir("files/client1_requester/file.blend_frames")
 	assert(t, len(files) == (numFrames+1), "Rendered all the frames!")
