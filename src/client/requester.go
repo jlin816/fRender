@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/rpc"
 	"os"
@@ -57,6 +58,7 @@ func initRequester(username string, masterAddr string) *Requester {
 	// go requester.listenOnSocket()
 	// requester.startJob()
 	fmt.Printf("requester initialised %v\n", username)
+	rand.Seed(time.Now().Unix())
 
 	return &requester
 }
@@ -171,9 +173,10 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
-func basicSplitFrames(numFrames int, numFriends int) [][]int {
+func basicSplitFrames(numFrames int, numFriends int) (frameSplit [][]int, verificationFrames [][2]int) {
 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
-	frameSplit := make([][]int, numFriends)
+	frameSplit = make([][]int, numFriends)
+	verificationFrames = make([][2]int, numFriends)
 
 	friend := -1
 	for i := 0; i <= numFrames; i++ {
@@ -182,7 +185,18 @@ func basicSplitFrames(numFrames int, numFriends int) [][]int {
 		}
 		frameSplit[friend] = append(frameSplit[friend], i)
 	}
-	return frameSplit
+
+	for i := 0; i < numFriends; i++ {
+		frame := frameSplit[i][rand.Intn(len(frameSplit[i]))] // pick a random frame from i's work
+		verificationFrames[i][1] = frame
+		if i == (numFriends - 1) {
+			verificationFrames[0][0] = frame
+		} else {
+			verificationFrames[i+1][0] = frame
+		}
+	}
+
+	return frameSplit, verificationFrames
 }
 
 func (req *Requester) StartJob(filename string, numFrames int, numFriends int) bool {
@@ -211,7 +225,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}()
 
 	// determine frame split
-	frameSplit := basicSplitFrames(numFrames, numFriends)
+	frameSplit, _ := basicSplitFrames(numFrames, numFriends)
 
 	for i := 0; i < len(frameSplit); i++ {
 		tasks.available = append(tasks.available, i)
@@ -232,6 +246,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 			fmt.Printf("all tasks allocated, waiting...")
 			tasks.wg.Wait() //wait for all pending tasks to complete
 			if tasks.completed >= len(frameSplit) {
+				//verification goes here...
 				break
 			}
 		}
