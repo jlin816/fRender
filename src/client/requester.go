@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -210,6 +211,12 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 		os.Mkdir(outputFolder, os.ModePerm)
 	}
 
+	// create folder for verification
+	verFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, "req"))
+	if _, err := os.Stat(verFolder); os.IsNotExist(err) {
+		os.Mkdir(verFolder, os.ModePerm)
+	}
+
 	// get list of friends
 	friendAddresses := req.getFriendsFromMaster(numFriends) //TODO not just one friend LOL
 	//  connectToFriends
@@ -253,8 +260,6 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 				if success {
 					fmt.Println("verification complete...")
 					break
-				} else {
-					panic("you have bad friends")
 				}
 			}
 		}
@@ -265,7 +270,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	// merge frames :)
 	for i := 0; i < len(frameSplit); i++ {
 		framesFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v/.", filename, i))
-		cpCmd := exec.Command("cp", "-rf", framesFolder, outputFolder)
+		cpCmd := exec.Command("/bin/cp", "-rf", framesFolder, outputFolder)
 		err1 := cpCmd.Run()
 		if err1 != nil {
 			panic(err1)
@@ -281,21 +286,48 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]int, tasks *Tasks) bool {
 	nTasks := len(verificationFrames)
+	badTasks := make(map[int]bool, nTasks)
+	success := true
 	for i := 0; i < nTasks; i++ {
-		outputFolder1 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, i))
-		j := i + 1
-		if j == nTasks {
-			j = 0
-		}
-		outputFolder2 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, j))
-		pathToFile1 := fmt.Sprintf("%v/frame_%05d.png", outputFolder1, verificationFrames[i][1])
-		pathToFile2 := fmt.Sprintf("%v/frame_%05d.png", outputFolder2, verificationFrames[j][0])
-		fmt.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
-		if !verifyFrames(pathToFile1, pathToFile2) {
-			return false
+		if !badTasks[i] {
+			outputFolder1 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, i))
+			j := i + 1
+			if j == nTasks {
+				j = 0
+			}
+			outputFolder2 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, j))
+			frame := verificationFrames[i][1]
+			// assert(verificationFrames[i][1], verificationFrames[j][0])
+			pathToFile1 := fmt.Sprintf("%v/frame_%05d.png", outputFolder1, frame)
+			pathToFile2 := fmt.Sprintf("%v/frame_%05d.png", outputFolder2, frame)
+			fmt.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
+			if !verifyFrames(pathToFile1, pathToFile2) {
+				success = false
+
+				// render conflict frame ourselves, to test against other friends
+				req.renderFrame(filename, frame)
+				verFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, "req"))
+				pathToFileVer := fmt.Sprintf("%v/frame_%05d.png", verFolder, frame)
+
+				if !verifyFrames(pathToFile1, pathToFileVer) {
+					tasks.mu.Lock()
+					tasks.available = append(tasks.available, i)
+					tasks.completed--
+					tasks.mu.Unlock()
+					badTasks[i] = true
+				}
+
+				if !verifyFrames(pathToFile2, pathToFileVer) {
+					tasks.mu.Lock()
+					tasks.available = append(tasks.available, j)
+					tasks.completed--
+					tasks.mu.Unlock()
+					badTasks[j] = true
+				}
+			}
 		}
 	}
-	return true
+	return success
 }
 
 func (req *Requester) closeConnections() {
@@ -414,4 +446,37 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 
 func (req *Requester) getLocalFilename(filename string) string {
 	return "files/" + req.username + "_requester/" + filename
+}
+
+func (req *Requester) renderFrames(file string, frames []int) string {
+	relativeFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", file, "req"))
+	outputFolder, _ := filepath.Abs(relativeFolder)
+	outputFiles := outputFolder + "/frame_#####"
+	absoluteFilepath, _ := filepath.Abs(req.getLocalFilename(file))
+
+	args := []string{
+		"-b",
+		absoluteFilepath,
+		"-F",
+		"PNG",
+		"-o",
+		outputFiles,
+		"-f",
+		arrayToString(frames, ","),
+	}
+
+	blenderCmd := exec.Command(blenderPath, args...)
+	err := blenderCmd.Run()
+	if err != nil {
+		panic(err)
+	}
+	return relativeFolder
+}
+
+func (req *Requester) renderFrame(file string, frame int) string {
+	frames := make([]int, 0)
+	frames = append(frames, frame)
+	folder := req.renderFrames(file, frames)
+
+	return fmt.Sprintf("%v/frame_%05d.png", folder, frame)
 }
