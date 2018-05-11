@@ -227,6 +227,7 @@ func (fr *Friend) renderFrames(file string, frames []int) string {
 	if err1 != nil {
 		panic(err1)
 	}
+	os.RemoveAll(relativeFolder)
 	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
 }
 
@@ -301,6 +302,7 @@ func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	}
 	fmt.Printf("DONE %v %v !!\n", fr.username, file)
 	fr.sendFile(fr.requesterConn, file)
+	os.RemoveAll(fr.getLocalFilename(file))
 	fmt.Println(file)
 	*reply = file
 	return nil
