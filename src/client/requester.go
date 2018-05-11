@@ -159,6 +159,13 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		}
 		fmt.Printf("rpc connected to %v\n", frAddress)
 
+		args := 0
+		reply := 0
+		err = rpcconn.Call("Friend.MarkAsUnavailable", args, &reply)
+		if err != nil {
+			panic(err)
+		}
+
 		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn})
 		fmt.Printf("connected to %v\n", frAddress)
 	}
@@ -233,8 +240,12 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	fmt.Println("all frames received...")
 
 	// code to kill hanging threads, and close up connections
+	var args int
+	var reply int
 	for _, friend := range req.friends {
+		friend.rpc.Call("Friend.MarkAsAvailable", args, reply)
 		friend.conn.Close()
+		friend.rpc.Close()
 	}
 
 	return true

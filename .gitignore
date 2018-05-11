@@ -18,3 +18,5 @@
 pkg/*
 bin/*
 *tags*
+.tags
+.tags1

@@ -251,6 +251,16 @@ func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	return nil
 }
 
+func (fr *Friend) MarkAsUnavailable(args int, reply *int) error {
+	fr.available = false
+	return nil
+}
+
+func (fr *Friend) MarkAsAvailable(args int, reply *int) error {
+	fr.available = true
+	return nil
+}
+
 func (fr *Friend) getLocalFilename(filename string) string {
 	return "files/" + fr.username + "_friend/" + filename
 }
