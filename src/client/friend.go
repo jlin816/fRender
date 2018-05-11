@@ -242,25 +242,6 @@ func (fr *Friend) sendHeartbeatsToMaster() {
 	}
 }
 
-func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
-	fmt.Printf("rendering frames\n")
-	file := fr.renderFrames(args.Filename, args.Frames)
-	fr.sendFile(fr.requesterConn, file)
-	fmt.Println(file)
-	*reply = file
-	return nil
-}
-
-func (fr *Friend) MarkAsUnavailable(args int, reply *int) error {
-	fr.available = false
-	return nil
-}
-
-func (fr *Friend) MarkAsAvailable(args int, reply *int) error {
-	fr.available = true
-	return nil
-}
-
 func (fr *Friend) getLocalFilename(filename string) string {
 	return "files/" + fr.username + "_friend/" + filename
 }
@@ -305,4 +286,25 @@ func externalIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
+}
+
+////// PUBLIC METHODS ///////
+
+func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
+	fmt.Printf("rendering frames\n")
+	file := fr.renderFrames(args.Filename, args.Frames)
+	fr.sendFile(fr.requesterConn, file)
+	fmt.Println(file)
+	*reply = file
+	return nil
+}
+
+func (fr *Friend) MarkAsUnavailable(args int, reply *int) error {
+	fr.available = false
+	return nil
+}
+
+func (fr *Friend) MarkAsAvailable(args int, reply *int) error {
+	fr.available = true
+	return nil
 }
