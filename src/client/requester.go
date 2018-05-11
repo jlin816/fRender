@@ -1,8 +1,8 @@
 package client
 
 import (
-	. "common"
 	"bytes"
+	. "common"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const BUFFERSIZE = 1024
@@ -30,6 +31,14 @@ type Requester struct {
 	masterAddr       net.Addr
 	masterHttpClient *rpc.Client
 	mu               sync.Mutex
+}
+
+type Tasks struct {
+	available    []int
+	completed    int
+	wg           *sync.WaitGroup
+	mu           sync.Mutex
+	registerChan chan FriendData
 }
 
 func initRequester(username string, masterAddr string) *Requester {
@@ -155,11 +164,6 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 	}
 }
 
-type Range struct {
-	start int
-	end   int
-}
-
 func basicSplitFrames(numFrames int, numFriends int) [][]int {
 	framesPerFriend := (numFrames + numFriends - 1) / numFriends
 	frameSplit := make([][]int, numFriends)
@@ -176,7 +180,6 @@ func basicSplitFrames(numFrames int, numFriends int) [][]int {
 
 func (req *Requester) StartJob(filename string, numFrames int) bool {
 	fmt.Println("start job...")
-	var wg sync.WaitGroup
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
@@ -184,20 +187,48 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 	}
 
 	// get list of friends
-	friendAddresses := req.getFriendsFromMaster(1) //TODO not just one friend LOL
+	friendAddresses := req.getFriendsFromMaster(3) //TODO not just one friend LOL
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
-
 	fmt.Println("connected to friends...")
+
+	// build task manager
+	var tasks Tasks
+	var wg sync.WaitGroup
+	tasks.wg = &wg
+	tasks.registerChan = make(chan FriendData)
+	go func() {
+		for _, friend := range req.friends {
+			tasks.registerChan <- friend
+		}
+	}()
 
 	// determine frame split
 	numFriends := len(req.friends)
 	frameSplit := basicSplitFrames(numFrames, numFriends)
 
+	for i := 0; i < len(frameSplit); i++ {
+		tasks.available = append(tasks.available, i)
+	}
+
 	// send file to each friend
-	for i, friend := range req.friends {
-		wg.Add(1)
-		go req.renderFramesOnFriend(filename, friend, frameSplit[i], &wg)
+	for friend := range tasks.registerChan {
+		// for _, friend := range req.friends {
+		tasks.mu.Lock()
+		if len(tasks.available) > 0 {
+			taskNum := tasks.available[0]
+			tasks.available = tasks.available[1:]
+			tasks.wg.Add(1)
+			tasks.mu.Unlock()
+			go req.renderFramesOnFriend(filename, friend, frameSplit[taskNum], &tasks, taskNum)
+		} else {
+			tasks.mu.Unlock()
+			fmt.Printf("all tasks allocated, waiting...")
+			tasks.wg.Wait() //wait for all pending tasks to complete
+			if tasks.completed >= len(frameSplit) {
+				break
+			}
+		}
 	}
 	wg.Wait()
 	fmt.Println("all frames received...")
@@ -209,39 +240,40 @@ func verifyFrames(filepath1 string, filepath2 string) bool {
 	chunkSize := 64000
 	// from https://stackoverflow.com/questions/29505089/how-can-i-compare-two-files-in-golang
 	f1, err := os.Open(filepath1)
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    f2, err := os.Open(filepath2)
-    if err != nil {
-        log.Fatal(err)
-    }
+	f2, err := os.Open(filepath2)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    for {
-        b1 := make([]byte, chunkSize)
-        _, err1 := f1.Read(b1)
+	for {
+		b1 := make([]byte, chunkSize)
+		_, err1 := f1.Read(b1)
 
-        b2 := make([]byte, chunkSize)
-        _, err2 := f2.Read(b2)
+		b2 := make([]byte, chunkSize)
+		_, err2 := f2.Read(b2)
 
-        if err1 != nil || err2 != nil {
-            if err1 == io.EOF && err2 == io.EOF {
-                return true
-            } else if err1 == io.EOF || err2 == io.EOF {
-                return false
-            } else {
-                log.Fatal(err1, err2)
-            }
-        }
+		if err1 != nil || err2 != nil {
+			if err1 == io.EOF && err2 == io.EOF {
+				return true
+			} else if err1 == io.EOF || err2 == io.EOF {
+				return false
+			} else {
+				log.Fatal(err1, err2)
+			}
+		}
 
-        if !bytes.Equal(b1, b2) {
-            return false
-        }
-    }
+		if !bytes.Equal(b1, b2) {
+			return false
+		}
+	}
 }
 
-func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, wg *sync.WaitGroup) {
+func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, tasks *Tasks, taskNum int) {
+	success := true
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	req.sendFile(friend.conn, filename)
 
@@ -252,6 +284,7 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 	var reply string
 	err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
 	if err != nil {
+		success = false
 		log.Fatal("rpc error:", err)
 	}
 	fmt.Printf("reply: %v\n", reply)
@@ -265,7 +298,19 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 		panic(err1)
 	}
 	req.mu.Unlock()
-	wg.Done()
+
+	tasks.mu.Lock()
+	if success {
+		tasks.completed = tasks.completed + 1 //lock on write
+		tasks.mu.Unlock()
+
+	} else {
+		tasks.available = append(tasks.available, taskNum)
+		tasks.mu.Unlock()
+		time.Sleep(100 * time.Millisecond) //stall failed worker
+	}
+	tasks.wg.Done()
+	tasks.registerChan <- friend
 }
 
 func (req *Requester) getProgress() {

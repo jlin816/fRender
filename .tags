@@ -1,0 +1,55 @@
+TestConnectToMaster	/Users/neena/Projects/classes/6824/fRender/src/client/client_test.go	/^func TestConnectToMaster(t *testing.T) {$/;"	func	line:10
+TestSendFile	/Users/neena/Projects/classes/6824/fRender/src/client/client_test.go	/^func TestSendFile(t *testing.T) {$/;"	func	line:40
+listen	/Users/neena/Projects/classes/6824/fRender/src/client/client_test.go	/^func listen(conn net.Conn) {$/;"	func	line:44
+send	/Users/neena/Projects/classes/6824/fRender/src/client/client_test.go	/^func send(conn net.Conn) {$/;"	func	line:60
+Client	/Users/neena/Projects/classes/6824/fRender/src/client/client.go	/^type Client struct {$/;"	type	line:5
+initClient	/Users/neena/Projects/classes/6824/fRender/src/client/client.go	/^func initClient(username string, port int) *Client {$/;"	func	line:12
+NewClient	/Users/neena/Projects/classes/6824/fRender/src/client/client.go	/^func NewClient(username string, port int) *Client {$/;"	func	line:24
+StartJob	/Users/neena/Projects/classes/6824/fRender/src/client/client.go	/^func (cl *Client) StartJob(filename string, numFrames int) {$/;"	func	line:28
+assert	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func assert(t *testing.T, condition bool, message string) {$/;"	func	line:13
+TestRegisterClient	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClient(t *testing.T) {$/;"	func	line:20
+TestRegisterClients	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRegisterClients(t *testing.T) {$/;"	func	line:32
+TestStartJobSuccessOneFriend	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessOneFriend(t *testing.T) {$/;"	func	line:46
+TestStartJobSuccessManyFriends	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobSuccessManyFriends(t *testing.T) {$/;"	func	line:58
+TestStartJobRetry	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestStartJobRetry(t *testing.T) {$/;"	func	line:76
+TestFriendStatusUpdates	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestFriendStatusUpdates(t *testing.T) {$/;"	func	line:80
+TestRequesterFriendCommunication	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRequesterFriendCommunication(t *testing.T) {$/;"	func	line:87
+TestReceiveFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestReceiveFrames(t *testing.T) {$/;"	func	line:92
+TestRenderFrames	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestRenderFrames(t *testing.T) {$/;"	func	line:96
+TestCleanup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func TestCleanup(t *testing.T) {$/;"	func	line:100
+startup	/Users/neena/Projects/classes/6824/fRender/src/all_test.go	/^func startup(test string) {$/;"	func	line:106
+RenderFramesArgs	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^type RenderFramesArgs struct {$/;"	type	line:19
+Friend	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^type Friend struct {$/;"	type	line:26
+initFriend	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func initFriend(username string, port int) *Friend {$/;"	func	line:37
+listenMaster	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) listenMaster() {$/;"	func	line:81
+listenServer	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) listenServer() {$/;"	func	line:96
+fillString	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func fillString(returnString string, toLength int) string {$/;"	func	line:108
+sendFile	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) sendFile(connection net.Conn, filename string) {$/;"	func	line:121
+receiveFile	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) receiveFile(connection net.Conn) { \/\/ maybe want port as argument$/;"	func	line:150
+receivedBytes	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^	var receivedBytes int64$/;"	var	line:167
+registerWithMaster	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) registerWithMaster() {$/;"	func	line:180
+renderFrames	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) renderFrames(file string, frames []int) string {$/;"	func	line:189
+sendHeartbeatsToMaster	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) sendHeartbeatsToMaster() {$/;"	func	line:220
+RenderFrames	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {$/;"	func	line:228
+getLocalFilename	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func (fr *Friend) getLocalFilename(filename string) string {$/;"	func	line:237
+arrayToString	/Users/neena/Projects/classes/6824/fRender/src/client/friend.go	/^func arrayToString(a []int, delim string) string {$/;"	func	line:241
+FriendData	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type FriendData struct {$/;"	type	line:21
+Requester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type Requester struct {$/;"	type	line:27
+Tasks	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^type Tasks struct {$/;"	type	line:36
+initRequester	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func initRequester(username string, masterAddr string) *Requester {$/;"	func	line:44
+sendFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) sendFile(connection net.Conn, filename string) {$/;"	func	line:64
+receiveFile	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) receiveFile(connection net.Conn) {$/;"	func	line:95
+receivedBytes	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var receivedBytes int64$/;"	var	line:112
+registerWithMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) registerWithMaster() {$/;"	func	line:125
+connectToFriends	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) connectToFriends(friendAddresses []string) {$/;"	func	line:144
+basicSplitFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func basicSplitFrames(numFrames int, numFriends int) [][]int {$/;"	func	line:167
+StartJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) StartJob(filename string, numFrames int) bool {$/;"	func	line:181
+tasks	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var tasks Tasks$/;"	var	line:196
+wg	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var wg sync.WaitGroup$/;"	var	line:197
+verifyFrames	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func verifyFrames(filepath1 string, filepath2 string) bool {$/;"	func	line:239
+renderFramesOnFriend	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, tasks *Tasks, taskNum int) {$/;"	func	line:275
+reply	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^	var reply string$/;"	var	line:284
+getProgress	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getProgress() {$/;"	func	line:316
+cancelJob	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) cancelJob() {$/;"	func	line:320
+getFriendsFromMaster	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getFriendsFromMaster(n int) []string {$/;"	func	line:324
+getLocalFilename	/Users/neena/Projects/classes/6824/fRender/src/client/requester.go	/^func (req *Requester) getLocalFilename(filename string) string {$/;"	func	line:337
