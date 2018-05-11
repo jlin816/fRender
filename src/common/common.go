@@ -1,6 +1,7 @@
 package common
 
 type StartJobArgs struct {
+  Username    string
 	NumFriends	int
 }
 

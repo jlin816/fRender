@@ -33,10 +33,12 @@ type FriendData struct {
 	lastActive	time.Time
 	available	bool // alive and not busy
 	lastJob int // only increments
+	points  int
 }
 
 type RequesterData struct {
     username    string
+	  points			int
 }
 
 // ====== RPC METHODS ===========
@@ -56,6 +58,7 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
 		available: true,
 		lastActive: time.Now(),
 		lastJob: 0,
+		points: 0,
 	}
     mr.friends = append(mr.friends, newFriend)
     fmt.Printf("Connected friend %s!\n", newFriend.username)
@@ -69,6 +72,7 @@ func (mr *Master) RegisterRequester(args RegisterRequesterArgs, reply *RegisterR
 
     newRequester := RequesterData {
         username: args.Username,
+				points: 0,
     }
     mr.requesters = append(mr.requesters, newRequester)
     fmt.Printf("Connected new requester %s!\n", newRequester.username)
@@ -83,6 +87,13 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 
 	friendCount := 0
 	assignedFriends := make([]string, args.NumFriends)
+	for _, req := range mr.requesters { // spend points to start job
+		if req.username == args.Username {
+			req.points -= 1
+			break
+		}
+	}
+
 	for _, friend := range mr.friends {
 		if !friend.available || (time.Since(friend.lastActive) > friendTimeout) {
 			continue
@@ -109,6 +120,7 @@ func (mr *Master) Heartbeat(args HeartbeatArgs, reply *HeartbeatReply) error { m
             friend.lastActive = time.Now()
 						if args.LastJobCompleted == friend.lastJob && args.Available {
 							friend.available = true
+							friend.points += 1    // this is when a friend has successfully finished a job
 						}
             return nil
         }
