@@ -22,7 +22,14 @@ func initClient(username string, port int) *Client {
 }
 
 func NewClient(username string, port int) *Client {
-	return initClient(username, port)
+	cl := initClient(username, port)
+	return cl
+}
+
+func NewBadClient(username string, port int) *Client {
+	cl := initClient(username, port)
+	cl.fr.Bad = true
+	return cl
 }
 
 func (cl *Client) StartJob(filename string, numFrames int, numFriends int) {
