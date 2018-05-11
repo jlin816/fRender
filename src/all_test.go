@@ -83,6 +83,24 @@ func TestStartJobSuccessManyFriends(t *testing.T) {
 	// Test that a requester can get back n friends if there are n friends available.
 }
 
+func TestStartJobOneBadFriend(t *testing.T) {
+	startup("TestStartJobOneBadFriend")
+	numFrames := 6
+
+	_ = master.NewMaster()
+	cl1 := client.NewClient("client1", 19997)
+	_ = client.NewClient("client2", 19995)
+	_ = client.NewBadClient("client3", 19993)
+	cl1.StartJob("file.blend", numFrames, 3)
+
+	files, _ := ioutil.ReadDir("files/client1_requester/file.blend_frames")
+	assert(t, len(files) == (numFrames+1), "Rendered all the frames!")
+
+	// timer1 := time.NewTimer(10 * time.Second)
+	// <-timer1.C
+	// Test that a requester can get back n friends if there are n friends available.
+}
+
 func TestStartJobRetry(t *testing.T) {
 	// Test that a requester gets <n friends on first try but eventually gets n friends.
 }

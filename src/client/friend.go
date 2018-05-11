@@ -35,6 +35,7 @@ type Friend struct {
 	available     bool
 	httpClient    *rpc.Client
 	rpcServer     net.Listener
+	Bad           bool
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
@@ -96,7 +97,7 @@ func (fr *Friend) listenServer() {
 			os.Exit(1)
 		}
 		fr.requesterConn = conn
-		fr.receiveFile(conn)
+		// fr.receiveFile(conn)
 		// do something
 	}
 }
@@ -116,16 +117,15 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
+	fmt.Printf("sending file! %v\n", filename)
 	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 	fileInfo, err := file.Stat()
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 	// Sending filename and filesize
 	fileSize := fillString(strconv.FormatInt(fileInfo.Size(), 10), 10)
@@ -140,6 +140,7 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 		}
 		connection.Write(sendBuffer)
 	}
+	fmt.Printf("sent file! %v\n", filename)
 	return
 }
 
@@ -292,7 +293,13 @@ func externalIP() (string, error) {
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	fmt.Printf("rendering frames\n")
-	file := fr.renderFrames(args.Filename, args.Frames)
+	var file string
+	if fr.Bad {
+		file = fr.badRenderFrames(args.Filename, args.Frames)
+	} else {
+		file = fr.renderFrames(args.Filename, args.Frames)
+	}
+	fmt.Printf("DONE %v %v !!\n", fr.username, file)
 	fr.sendFile(fr.requesterConn, file)
 	fmt.Println(file)
 	*reply = file
@@ -306,5 +313,9 @@ func (fr *Friend) MarkAsUnavailable(args int, reply *int) error {
 
 func (fr *Friend) MarkAsAvailable(args int, reply *int) error {
 	fr.available = true
+	return nil
+}
+func (fr *Friend) ReceiveFile(args int, reply *int) error {
+	fr.receiveFile(fr.requesterConn)
 	return nil
 }

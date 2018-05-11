@@ -231,7 +231,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	var tasks Tasks
 	var wg sync.WaitGroup
 	tasks.wg = &wg
-	tasks.registerChan = make(chan FriendData)
+	tasks.registerChan = make(chan FriendData, len(friendAddresses))
 	go func() {
 		for _, friend := range req.friends {
 			tasks.registerChan <- friend
@@ -256,7 +256,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 			go req.renderFramesOnFriend(filename, friend, frameSplit[taskNum], &tasks, taskNum)
 		} else {
 			tasks.mu.Unlock()
-			fmt.Printf("all tasks allocated, waiting...")
+			fmt.Println("all tasks allocated, waiting...")
 			tasks.wg.Wait() //wait for all pending tasks to complete
 
 			if tasks.completed >= len(frameSplit) { // check all tasks succeeded
@@ -266,6 +266,9 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 				if success {
 					fmt.Println("verification complete...")
 					break
+				} else {
+					fmt.Println("verification failed, reassigning tasks...")
+					fmt.Println(tasks.available)
 				}
 			}
 		}
@@ -335,6 +338,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 					tasks.available = append(tasks.available, i)
 					tasks.completed--
 					tasks.mu.Unlock()
+					os.RemoveAll(outputFolder1)
 					badTasks[i] = true
 				}
 
@@ -343,6 +347,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 					tasks.available = append(tasks.available, j)
 					tasks.completed--
 					tasks.mu.Unlock()
+					os.RemoveAll(outputFolder2)
 					badTasks[j] = true
 				}
 			}
@@ -355,10 +360,21 @@ func (req *Requester) closeConnections() {
 	var args int
 	var reply int
 	for _, friend := range req.friends {
-		friend.rpc.Call("Friend.MarkAsAvailable", args, reply)
+		friend.rpc.Call("Friend.MarkAsAvailable", args, &reply)
 		friend.conn.Close()
 		friend.rpc.Close()
 	}
+}
+
+func (req *Requester) receiveFileOnFriend(friend *FriendData) {
+	var args int
+	var reply int
+	friend.rpc.Call("Friend.ReceiveFile", args, &reply)
+}
+
+func (req *Requester) receiveFileWithWait(connection net.Conn, recvChannel chan bool) {
+	req.receiveFile(connection)
+	recvChannel <- true
 }
 
 func verifyFrames(filepath1 string, filepath2 string) bool {
@@ -405,7 +421,7 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
 		os.Mkdir(outputFolder, os.ModePerm)
 	}
-
+	go req.receiveFileOnFriend(&friend)
 	req.sendFile(friend.conn, filename)
 
 	args := RenderFramesArgs{Filename: filename}
@@ -413,14 +429,15 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 
 	fmt.Println(args)
 	var reply string
+	receiveChannel := make(chan bool)
+	go req.receiveFileWithWait(friend.conn, receiveChannel)
 	err := friend.rpc.Call("Friend.RenderFrames", args, &reply)
 	if err != nil {
 		success = false
 		log.Fatal("rpc error:", err)
 	}
 	fmt.Printf("reply: %v\n", reply)
-	req.receiveFile(friend.conn)
-
+	_ = <-receiveChannel
 	req.mu.Lock()
 	zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
 	fmt.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
