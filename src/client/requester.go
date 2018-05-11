@@ -233,7 +233,6 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 	// send file to each friend
 	for friend := range tasks.registerChan {
-		// for _, friend := range req.friends {
 		tasks.mu.Lock()
 		if len(tasks.available) > 0 {
 			taskNum := tasks.available[0]
@@ -246,8 +245,10 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 			fmt.Printf("all tasks allocated, waiting...")
 			tasks.wg.Wait() //wait for all pending tasks to complete
 			if tasks.completed >= len(frameSplit) {
-				//verification goes here...
-				break
+				success := req.verifyAllFrames(verificationFrames, &tasks)
+				if success {
+					break
+				}
 			}
 		}
 	}
@@ -255,6 +256,17 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	fmt.Println("all frames received...")
 
 	// code to kill hanging threads, and close up connections
+	req.closeConnections()
+
+	return true
+
+}
+
+func (req *Requester) verifyAllFrames(verificationFrames [][2]int, tasks *Tasks) bool {
+	return true
+}
+
+func (req *Requester) closeConnections() {
 	var args int
 	var reply int
 	for _, friend := range req.friends {
@@ -262,9 +274,6 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 		friend.conn.Close()
 		friend.rpc.Close()
 	}
-
-	return true
-
 }
 
 func verifyFrames(filepath1 string, filepath2 string) bool {
