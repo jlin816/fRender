@@ -23,12 +23,12 @@ type FriendData struct {
 }
 
 type Requester struct {
-	me         int
-	username   string
-	friends    []FriendData
-	masterAddr net.Addr
-    masterHttpClient    *rpc.Client
-	mu         sync.Mutex
+	me               int
+	username         string
+	friends          []FriendData
+	masterAddr       net.Addr
+	masterHttpClient *rpc.Client
+	mu               sync.Mutex
 }
 
 func initRequester(username string, masterAddr string) *Requester {
@@ -113,21 +113,21 @@ func (req *Requester) receiveFile(connection net.Conn) {
 }
 
 func (req *Requester) registerWithMaster() {
-    httpClient, err := rpc.DialHTTP("tcp", req.masterAddr.String())
-    if err != nil {
-        fmt.Println("Couldn't connect requester to master")
-        panic(err)
-    }
+	httpClient, err := rpc.DialHTTP("tcp", req.masterAddr.String())
+	if err != nil {
+		fmt.Println("Couldn't connect requester to master")
+		panic(err)
+	}
 
-    args := RegisterRequesterArgs{Username: req.username}
-    reply := RegisterFriendReply{}
-    err = httpClient.Call("Master.RegisterRequester", args, &reply)
-    if err != nil {
-        fmt.Printf("Error registering requester: %v", err)
-        panic(err)
-    }
+	args := RegisterRequesterArgs{Username: req.username}
+	reply := RegisterFriendReply{}
+	err = httpClient.Call("Master.RegisterRequester", args, &reply)
+	if err != nil {
+		fmt.Printf("Error registering requester: %v", err)
+		panic(err)
+	}
 
-    req.masterHttpClient = httpClient
+	req.masterHttpClient = httpClient
 	fmt.Printf("Requester registered w/master!!\n")
 }
 
@@ -183,8 +183,7 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 	}
 
 	// get list of friends
-	friendAddresses := req.getFriendsFromMaster(1)
-
+	friendAddresses := req.getFriendsFromMaster(1) //TODO not just one friend LOL
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
 
@@ -241,14 +240,14 @@ func (req *Requester) cancelJob() {
 }
 
 func (req *Requester) getFriendsFromMaster(n int) []string {
-    args := StartJobArgs{NumFriends: n}
-    reply := StartJobReply{}
+	args := StartJobArgs{NumFriends: n}
+	reply := StartJobReply{}
 
-    err := req.masterHttpClient.Call("Master.StartJob", args, &reply)
-    if err != nil {
-        fmt.Printf("Error calling StartJob to get friends from master: %v", err)
-    }
-    fmt.Printf("Got friends from master: %v", reply.Friends)
+	err := req.masterHttpClient.Call("Master.StartJob", args, &reply)
+	if err != nil {
+		fmt.Printf("Error calling StartJob to get friends from master: %v", err)
+	}
+	fmt.Printf("Got friends from master: %v", reply.Friends)
 
 	return reply.Friends
 }
