@@ -35,6 +35,7 @@ type Friend struct {
 	available     bool
 	httpClient    *rpc.Client
 	rpcServer     net.Listener
+	lastJobCompleted int
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
@@ -80,7 +81,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	}
 
 	friend.server = server
-
+	friend.lastJobCompleted = 0
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
 
@@ -232,7 +233,7 @@ func (fr *Friend) renderFrames(file string, frames []int) string {
 func (fr *Friend) sendHeartbeatsToMaster() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	for _ = range ticker.C {
-		args := HeartbeatArgs{Available: fr.available, Username: fr.username}
+		args := HeartbeatArgs{Available: fr.available, Username: fr.username, LastJobCompleted: fr.lastJobCompleted}
 		reply := HeartbeatReply{}
 		err := fr.httpClient.Call("Master.Heartbeat", args, &reply)
 		if err != nil {
@@ -294,6 +295,7 @@ func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	fmt.Printf("rendering frames\n")
 	file := fr.renderFrames(args.Filename, args.Frames)
 	fr.sendFile(fr.requesterConn, file)
+	fr.lastJobCompleted++
 	fmt.Println(file)
 	*reply = file
 	return nil

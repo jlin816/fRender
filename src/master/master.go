@@ -32,6 +32,7 @@ type FriendData struct {
 	address		net.Addr
 	lastActive	time.Time
 	available	bool // alive and not busy
+	lastJob int // only increments
 }
 
 type RequesterData struct {
@@ -54,6 +55,7 @@ func (mr *Master) RegisterFriend(args RegisterFriendArgs, reply *RegisterFriendR
 		address: addr,
 		available: true,
 		lastActive: time.Now(),
+		lastJob: 0,
 	}
     mr.friends = append(mr.friends, newFriend)
     fmt.Printf("Connected friend %s!\n", newFriend.username)
@@ -87,6 +89,8 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 		}
 
 		assignedFriends[friendCount] = friend.address.String()
+		friend.available = false // mark this friend as unavailable
+		friend.lastJob++
 		friendCount++
 
 		if friendCount == args.NumFriends {
@@ -97,13 +101,15 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 	return errors.New("Not enough active friends")
 }
 
-func (mr *Master) Heartbeat(args HeartbeatArgs, reply *HeartbeatReply) error {
-    mr.mu.Lock()
+func (mr *Master) Heartbeat(args HeartbeatArgs, reply *HeartbeatReply) error { mr.mu.Lock()
     defer mr.mu.Unlock()
 
     for _, friend := range mr.friends {
         if friend.username == args.Username {
             friend.lastActive = time.Now()
+						if args.LastJobCompleted == friend.lastJob && args.Available {
+							friend.available = true
+						}
             return nil
         }
     }

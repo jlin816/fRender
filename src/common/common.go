@@ -29,6 +29,7 @@ type RegisterRequesterReply struct {
 type HeartbeatArgs struct {
     Username    string
     Available   bool
+    LastJobCompleted int
 }
 
 type HeartbeatReply struct {
