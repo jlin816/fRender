@@ -196,6 +196,9 @@ func basicSplitFrames(numFrames int, numFriends int) (frameSplit [][]int, verifi
 		}
 	}
 
+	for i := 0; i < numFriends; i++ {
+		frameSplit[i] = append(frameSplit[i], verificationFrames[i][0])
+	}
 	return frameSplit, verificationFrames
 }
 
@@ -225,7 +228,8 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}()
 
 	// determine frame split
-	frameSplit, _ := basicSplitFrames(numFrames, numFriends)
+	frameSplit, verificationFrames := basicSplitFrames(numFrames, numFriends)
+	fmt.Println(verificationFrames)
 
 	for i := 0; i < len(frameSplit); i++ {
 		tasks.available = append(tasks.available, i)
@@ -245,15 +249,28 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 			fmt.Printf("all tasks allocated, waiting...")
 			tasks.wg.Wait() //wait for all pending tasks to complete
 			if tasks.completed >= len(frameSplit) {
-				success := req.verifyAllFrames(verificationFrames, &tasks)
+				success := req.verifyAllFrames(filename, verificationFrames, &tasks)
 				if success {
+					fmt.Println("verification complete...")
 					break
+				} else {
+					panic("you have bad friends")
 				}
 			}
 		}
 	}
 	wg.Wait()
 	fmt.Println("all frames received...")
+
+	// merge frames :)
+	for i := 0; i < len(frameSplit); i++ {
+		framesFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v/.", filename, i))
+		cpCmd := exec.Command("cp", "-rf", framesFolder, outputFolder)
+		err1 := cpCmd.Run()
+		if err1 != nil {
+			panic(err1)
+		}
+	}
 
 	// code to kill hanging threads, and close up connections
 	req.closeConnections()
@@ -262,7 +279,22 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 }
 
-func (req *Requester) verifyAllFrames(verificationFrames [][2]int, tasks *Tasks) bool {
+func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]int, tasks *Tasks) bool {
+	nTasks := len(verificationFrames)
+	for i := 0; i < nTasks; i++ {
+		outputFolder1 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, i))
+		j := i + 1
+		if j == nTasks {
+			j = 0
+		}
+		outputFolder2 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, j))
+		pathToFile1 := fmt.Sprintf("%v/frame_%05d.png", outputFolder1, verificationFrames[i][1])
+		pathToFile2 := fmt.Sprintf("%v/frame_%05d.png", outputFolder2, verificationFrames[j][0])
+		fmt.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
+		if !verifyFrames(pathToFile1, pathToFile2) {
+			return false
+		}
+	}
 	return true
 }
 
@@ -314,7 +346,13 @@ func verifyFrames(filepath1 string, filepath2 string) bool {
 
 func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, tasks *Tasks, taskNum int) {
 	success := true
-	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
+
+	// create output folder
+	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, taskNum))
+	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
+		os.Mkdir(outputFolder, os.ModePerm)
+	}
+
 	req.sendFile(friend.conn, filename)
 
 	args := RenderFramesArgs{Filename: filename}
