@@ -147,12 +147,15 @@ func (req *Requester) registerWithMaster() {
 func (req *Requester) connectToFriends(friendAddresses []string) {
 	req.friends = make([]FriendData, 0)
 	for _, frAddress := range friendAddresses {
-		connection, err := net.Dial("tcp", frAddress) // TODO: Update port
+
+		// connect to TCP file server
+		connection, err := net.Dial("tcp", frAddress)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Printf("tcp connected to %v\n", frAddress)
 
+		// connect to RPC server (by def'n, port+1 of file server)
 		addrParts := strings.Split(frAddress, ":")
 		port, _ := strconv.ParseInt(addrParts[1], 0, 64)
 		rpcAddr := fmt.Sprintf("%v:%v", addrParts[0], port+1)
@@ -162,6 +165,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		}
 		fmt.Printf("rpc connected to %v\n", frAddress)
 
+		// mark friend as unavailable
 		args := 0
 		reply := 0
 		err = rpcconn.Call("Friend.MarkAsUnavailable", args, &reply)
@@ -218,10 +222,10 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}
 
 	// get list of friends
-	friendAddresses := req.getFriendsFromMaster(numFriends) //TODO not just one friend LOL
+	friendAddresses := req.getFriendsFromMaster(numFriends)
+
 	//  connectToFriends
 	req.connectToFriends(friendAddresses)
-	fmt.Println("connected to friends...")
 
 	// build task manager
 	var tasks Tasks
@@ -237,12 +241,11 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	// determine frame split
 	frameSplit, verificationFrames := basicSplitFrames(numFrames, numFriends)
 	fmt.Println(verificationFrames)
-
 	for i := 0; i < len(frameSplit); i++ {
 		tasks.available = append(tasks.available, i)
 	}
 
-	// send file to each friend
+	// assign tasks to available friends...
 	for friend := range tasks.registerChan {
 		tasks.mu.Lock()
 		if len(tasks.available) > 0 {
@@ -255,7 +258,10 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 			tasks.mu.Unlock()
 			fmt.Printf("all tasks allocated, waiting...")
 			tasks.wg.Wait() //wait for all pending tasks to complete
-			if tasks.completed >= len(frameSplit) {
+
+			if tasks.completed >= len(frameSplit) { // check all tasks succeeded
+
+				//run the verification procedure. If there are bad tasks, then add back to the task manager
 				success := req.verifyAllFrames(filename, verificationFrames, &tasks)
 				if success {
 					fmt.Println("verification complete...")
@@ -268,14 +274,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	fmt.Println("all frames received...")
 
 	// merge frames :)
-	for i := 0; i < len(frameSplit); i++ {
-		framesFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v/.", filename, i))
-		cpCmd := exec.Command("/bin/cp", "-rf", framesFolder, outputFolder)
-		err1 := cpCmd.Run()
-		if err1 != nil {
-			panic(err1)
-		}
-	}
+	req.mergeFrames(filename, len(frameSplit))
 
 	// code to kill hanging threads, and close up connections
 	req.closeConnections()
@@ -284,12 +283,34 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 }
 
+func (req *Requester) mergeFrames(filename string, nTasks int) {
+	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
+
+	for i := 0; i < nTasks; i++ {
+		framesFolder := req.getLocalFilename(fmt.Sprintf("%v_frames_%v/.", filename, i))
+		cpCmd := exec.Command("/bin/cp", "-rf", framesFolder, outputFolder)
+		err1 := cpCmd.Run()
+		if err1 != nil {
+			panic(err1)
+		}
+	}
+
+	// remove all the temp folders we created
+	for i := 0; i < nTasks; i++ {
+		os.RemoveAll(req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, i)))
+	}
+	os.RemoveAll(req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, "req")))
+}
+
 func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]int, tasks *Tasks) bool {
 	nTasks := len(verificationFrames)
 	badTasks := make(map[int]bool, nTasks)
 	success := true
+
 	for i := 0; i < nTasks; i++ {
-		if !badTasks[i] {
+		if !badTasks[i] { // don't check bad tasks
+
+			// take neighbours on the circle, and open respective frames
 			outputFolder1 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, i))
 			j := i + 1
 			if j == nTasks {
@@ -297,10 +318,10 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 			}
 			outputFolder2 := req.getLocalFilename(fmt.Sprintf("%v_frames_%v", filename, j))
 			frame := verificationFrames[i][1]
-			// assert(verificationFrames[i][1], verificationFrames[j][0])
 			pathToFile1 := fmt.Sprintf("%v/frame_%05d.png", outputFolder1, frame)
 			pathToFile2 := fmt.Sprintf("%v/frame_%05d.png", outputFolder2, frame)
 			fmt.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
+
 			if !verifyFrames(pathToFile1, pathToFile2) {
 				success = false
 
@@ -407,6 +428,7 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 	if err1 != nil {
 		panic(err1)
 	}
+	os.RemoveAll(req.getLocalFilename(reply))
 	req.mu.Unlock()
 
 	tasks.mu.Lock()
