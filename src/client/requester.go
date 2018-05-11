@@ -380,6 +380,7 @@ func (req *Requester) receiveFileWithWait(connection net.Conn, recvChannel chan 
 func verifyFrames(filepath1 string, filepath2 string) bool {
 	chunkSize := 64000
 	// from https://stackoverflow.com/questions/29505089/how-can-i-compare-two-files-in-golang
+
 	f1, err := os.Open(filepath1)
 	if err != nil {
 		log.Fatal(err)
@@ -388,6 +389,12 @@ func verifyFrames(filepath1 string, filepath2 string) bool {
 	f2, err := os.Open(filepath2)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	fi1, _ := f1.Stat()
+	fi2, _ := f2.Stat()
+	if fi1.Size() != fi2.Size() {
+		return false
 	}
 
 	for {
