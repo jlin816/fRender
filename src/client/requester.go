@@ -2,6 +2,7 @@ package client
 
 import (
 	. "common"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -202,6 +203,42 @@ func (req *Requester) StartJob(filename string, numFrames int) bool {
 	fmt.Println("all frames received...")
 	return true
 
+}
+
+func verifyFrames(filepath1 string, filepath2 string) bool {
+	chunkSize := 64000
+	// from https://stackoverflow.com/questions/29505089/how-can-i-compare-two-files-in-golang
+	f1, err := os.Open(filepath1)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    f2, err := os.Open(filepath2)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    for {
+        b1 := make([]byte, chunkSize)
+        _, err1 := f1.Read(b1)
+
+        b2 := make([]byte, chunkSize)
+        _, err2 := f2.Read(b2)
+
+        if err1 != nil || err2 != nil {
+            if err1 == io.EOF && err2 == io.EOF {
+                return true
+            } else if err1 == io.EOF || err2 == io.EOF {
+                return false
+            } else {
+                log.Fatal(err1, err2)
+            }
+        }
+
+        if !bytes.Equal(b1, b2) {
+            return false
+        }
+    }
 }
 
 func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, frames []int, wg *sync.WaitGroup) {
