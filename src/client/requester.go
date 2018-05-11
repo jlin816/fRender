@@ -231,6 +231,12 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}
 	wg.Wait()
 	fmt.Println("all frames received...")
+
+	// code to kill hanging threads, and close up connections
+	for _, friend := range req.friends {
+		friend.conn.Close()
+	}
+
 	return true
 
 }
