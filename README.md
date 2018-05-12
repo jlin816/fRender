@@ -15,7 +15,7 @@ requester: submit Blender jobs to be rendered by other people. This component ru
 friend: render files on their personal computers.
 The master keeps the requesters and friends as two separate lists internally, but they can be linked to each other through the unique username that the client registers both the friend and requester with.
 
-![Figure 1. System diagram. A client submits jobs to virtual requesters located on fRender servers, which then distribute jobs to friends.](figure1.jpg?raw=true "Figure 1: System Diagram")
+![Figure 1. System diagram. A client submits jobs to virtual requesters located on fRender servers, which then distribute jobs to friends.](figure1.png?raw=true "Figure 1: System Diagram")
 
 Communication in the system is done with RPCs, except when friends and requesters exchange files over a raw TCP socket. The friends heartbeat the master periodically to communicate that they are alive, whether they are busy rendering a job or available to be assigned more work, and the last job number (global across all requesters) they completed. The master keeps track of the last time that it received a heartbeat from each friend, whether each friend is available (as of the last heartbeat), and the last job that a friend completed. 
 
@@ -49,7 +49,7 @@ A malicious user is detected if they disagree with their adjacent friends; the r
 
 An example of the verification process working in action is shown in the figure below.
 
-![Figure 2: Verification scheme.](figure2.jpg?raw=true "Figure 2: Verification scheme.")
+![Figure 2: Verification scheme.](figure2.png?raw=true "Figure 2: Verification scheme.")
 
 ### 2.3 Incentive Scheme
 This verification scheme works in tandem with a point-based incentive system that specifies the punishments for misbehavior and reward for rendering properly. Submitting a job with M frames and N friends costs a client N+M points, and each frame that is rendered correctly (as reported by the requester) earns a friend one point. There is thus no incentive to requesters to submit dummy jobs to reward other machines that they own, since it costs the same number of points to submit a job as the maximum reward you could earn.
