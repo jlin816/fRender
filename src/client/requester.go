@@ -21,10 +21,10 @@ import (
 const BUFFERSIZE = 1024
 
 type FriendData struct {
-	id   int // currently unused
+	id       int // currently unused
 	username string
-	conn net.Conn
-	rpc  *rpc.Client
+	conn     net.Conn
+	rpc      *rpc.Client
 }
 
 type Requester struct {
@@ -289,9 +289,10 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}
 	for i, task := range frameSplit {
 		username := req.friends[tasks.friendAssigned[i]].username
-		pointsDist[username]+= len(task)
+		pointsDist[username] += len(task)
 	}
-	pointsDist[req.username] = -(numFriends + numFrames)
+	pointsDist[req.username] += -(numFriends + numFrames + 1) // +1 because numFrames is inclusive range
+	req.distributePoints(pointsDist)
 
 	// merge frames :)
 	req.mergeFrames(filename, len(frameSplit))
