@@ -30,17 +30,19 @@ type Requester struct {
 	me               int
 	username         string
 	friends          []FriendData
+	isFriendBad      map[int]bool
 	masterAddr       net.Addr
 	masterHttpClient *rpc.Client
 	mu               sync.Mutex
 }
 
 type Tasks struct {
-	available    []int
-	completed    int
-	wg           *sync.WaitGroup
-	mu           sync.Mutex
-	registerChan chan FriendData
+	available      []int
+	completed      int
+	friendAssigned map[int]int
+	wg             *sync.WaitGroup
+	mu             sync.Mutex
+	registerChan   chan FriendData
 }
 
 func initRequester(username string, masterAddr string) *Requester {
@@ -146,8 +148,9 @@ func (req *Requester) registerWithMaster() {
 
 func (req *Requester) connectToFriends(friendAddresses []string) {
 	req.friends = make([]FriendData, 0)
-	for _, frAddress := range friendAddresses {
-
+	req.isFriendBad = make(map[int]bool, len(req.friends))
+	for i, frAddress := range friendAddresses {
+		req.isFriendBad[i] = false
 		// connect to TCP file server
 		connection, err := net.Dial("tcp", frAddress)
 		if err != nil {
@@ -173,7 +176,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 			panic(err)
 		}
 
-		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn})
+		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn, id: i})
 		fmt.Printf("connected to %v\n", frAddress)
 	}
 }
@@ -232,6 +235,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	var wg sync.WaitGroup
 	tasks.wg = &wg
 	tasks.registerChan = make(chan FriendData, len(friendAddresses))
+	tasks.friendAssigned = make(map[int]int, 0)
 	go func() {
 		for _, friend := range req.friends {
 			tasks.registerChan <- friend
@@ -247,28 +251,31 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 	// assign tasks to available friends...
 	for friend := range tasks.registerChan {
-		tasks.mu.Lock()
-		if len(tasks.available) > 0 {
-			taskNum := tasks.available[0]
-			tasks.available = tasks.available[1:]
-			tasks.wg.Add(1)
-			tasks.mu.Unlock()
-			go req.renderFramesOnFriend(filename, friend, frameSplit[taskNum], &tasks, taskNum)
-		} else {
-			tasks.mu.Unlock()
-			fmt.Println("all tasks allocated, waiting...")
-			tasks.wg.Wait() //wait for all pending tasks to complete
+		if !req.isFriendBad[friend.id] {
+			tasks.mu.Lock()
+			if len(tasks.available) > 0 {
+				taskNum := tasks.available[0]
+				tasks.available = tasks.available[1:]
+				tasks.friendAssigned[taskNum] = friend.id
+				tasks.wg.Add(1)
+				tasks.mu.Unlock()
+				go req.renderFramesOnFriend(filename, friend, frameSplit[taskNum], &tasks, taskNum)
+			} else {
+				tasks.mu.Unlock()
+				fmt.Println("all tasks allocated, waiting...")
+				tasks.wg.Wait() //wait for all pending tasks to complete
 
-			if tasks.completed >= len(frameSplit) { // check all tasks succeeded
+				if tasks.completed >= len(frameSplit) { // check all tasks succeeded
 
-				//run the verification procedure. If there are bad tasks, then add back to the task manager
-				success := req.verifyAllFrames(filename, verificationFrames, &tasks)
-				if success {
-					fmt.Println("verification complete...")
-					break
-				} else {
-					fmt.Println("verification failed, reassigning tasks...")
-					fmt.Println(tasks.available)
+					//run the verification procedure. If there are bad tasks, then add back to the task manager
+					success := req.verifyAllFrames(filename, verificationFrames, &tasks)
+					if success {
+						fmt.Println("verification complete...")
+						break
+					} else {
+						fmt.Println("verification failed, reassigning tasks...")
+						fmt.Println(tasks.available)
+					}
 				}
 			}
 		}
@@ -337,6 +344,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 					tasks.mu.Lock()
 					tasks.available = append(tasks.available, i)
 					tasks.completed--
+					req.isFriendBad[tasks.friendAssigned[i]] = true
 					tasks.mu.Unlock()
 					os.RemoveAll(outputFolder1)
 					badTasks[i] = true
@@ -346,6 +354,8 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 					tasks.mu.Lock()
 					tasks.available = append(tasks.available, j)
 					tasks.completed--
+					req.isFriendBad[tasks.friendAssigned[j]] = true
+					// fmt.Printf("friend %v %v\n", tasks.friendAssigned[j].bad, assigned.bad)
 					tasks.mu.Unlock()
 					os.RemoveAll(outputFolder2)
 					badTasks[j] = true
@@ -353,6 +363,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 			}
 		}
 	}
+	fmt.Println(req.isFriendBad)
 	return success
 }
 

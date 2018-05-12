@@ -103,13 +103,15 @@ func TestStartJobOneBadFriend(t *testing.T) {
 
 func TestStartJobTwoBadFriends(t *testing.T) {
 	startup("TestStartJobOneBadFriend")
-	numFrames := 6
+	numFrames := 10
 
 	_ = master.NewMaster()
 	cl1 := client.NewClient("client1", 19997)
 	_ = client.NewBadClient("client2", 19995)
 	_ = client.NewBadClient("client3", 19993)
-	cl1.StartJob("file.blend", numFrames, 3)
+	_ = client.NewClient("client4", 19991)
+	_ = client.NewClient("client5", 19989)
+	cl1.StartJob("file.blend", numFrames, 5)
 
 	files, _ := ioutil.ReadDir("files/client1_requester/file.blend_frames")
 	assert(t, len(files) == (numFrames+1), "Rendered all the frames!")
