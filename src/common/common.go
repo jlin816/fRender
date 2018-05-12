@@ -1,6 +1,7 @@
 package common
 
 type StartJobArgs struct {
+  Username    string
 	NumFriends	int
 }
 
@@ -29,6 +30,7 @@ type RegisterRequesterReply struct {
 type HeartbeatArgs struct {
     Username    string
     Available   bool
+    LastJobCompleted int
 }
 
 type HeartbeatReply struct {

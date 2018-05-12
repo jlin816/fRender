@@ -478,7 +478,7 @@ func (req *Requester) cancelJob() {
 }
 
 func (req *Requester) getFriendsFromMaster(n int) []string {
-	args := StartJobArgs{NumFriends: n}
+	args := StartJobArgs{NumFriends: n, Username: req.username}
 	reply := StartJobReply{}
 
 	err := req.masterHttpClient.Call("Master.StartJob", args, &reply)
