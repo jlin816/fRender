@@ -80,6 +80,14 @@ func (mr *Master) RegisterRequester(args RegisterRequesterArgs, reply *RegisterR
 	return nil
 }
 
+func (mr *Master) ChangePoints(args PointsArgs, reply *PointsReply) error {
+	mr.mu.Lock()
+	for _, friend := range mr.friends {
+		friend.points += args.PointDist[friend.username]
+	}
+	return nil
+}
+
 func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 	fmt.Println("StartJob called")
 	mr.mu.Lock()
@@ -87,12 +95,6 @@ func (mr *Master) StartJob(args StartJobArgs, reply *StartJobReply) error {
 
 	friendCount := 0
 	assignedFriends := make([]string, args.NumFriends)
-	for _, req := range mr.requesters { // spend points to start job
-		if req.username == args.Username {
-			req.points -= 1
-			break
-		}
-	}
 
 	for _, friend := range mr.friends {
 		if !friend.available || (time.Since(friend.lastActive) > friendTimeout) {

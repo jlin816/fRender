@@ -9,6 +9,14 @@ type StartJobReply struct {
 	Friends		[]string
 }
 
+type PointsArgs struct {
+  PointDist map[string]int
+}
+
+type PointsReply struct {
+	Success bool
+}
+
 type RegisterFriendArgs struct {
 	Address		string
     Username    string

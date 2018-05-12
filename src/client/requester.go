@@ -22,6 +22,7 @@ const BUFFERSIZE = 1024
 
 type FriendData struct {
 	id   int // currently unused
+	username string
 	conn net.Conn
 	rpc  *rpc.Client
 }
@@ -170,13 +171,13 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 
 		// mark friend as unavailable
 		args := 0
-		reply := 0
+		var reply string
 		err = rpcconn.Call("Friend.MarkAsUnavailable", args, &reply)
 		if err != nil {
 			panic(err)
 		}
 
-		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn, id: i})
+		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn, id: i, username: reply})
 		fmt.Printf("connected to %v\n", frAddress)
 	}
 }
@@ -282,6 +283,15 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 	}
 	wg.Wait()
 	fmt.Println("all frames received...")
+	pointsDist := make(map[string]int)
+	for _, friend := range req.friends {
+		pointsDist[friend.username] = 0
+	}
+	for i, task := range frameSplit {
+		username := req.friends[tasks.friendAssigned[i]].username
+		pointsDist[username]+= len(task)
+	}
+	pointsDist[req.username] = -(numFriends + numFrames)
 
 	// merge frames :)
 	req.mergeFrames(filename, len(frameSplit))
@@ -499,6 +509,13 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 	fmt.Printf("Got friends from master: %v", reply.Friends)
 
 	return reply.Friends
+}
+
+func (req *Requester) distributePoints(pointDist map[string]int) {
+	var args PointsArgs
+	var reply PointsReply
+	args.PointDist = pointDist
+	req.masterHttpClient.Call("Master.ChangePoints", args, &reply)
 }
 
 func (req *Requester) getLocalFilename(filename string) string {

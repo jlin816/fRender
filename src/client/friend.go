@@ -310,8 +310,9 @@ func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
 	return nil
 }
 
-func (fr *Friend) MarkAsUnavailable(args int, reply *int) error {
+func (fr *Friend) MarkAsUnavailable(args int, reply *string) error {
 	fr.available = false
+	*reply = fr.username
 	return nil
 }
 
