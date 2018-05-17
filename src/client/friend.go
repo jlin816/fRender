@@ -2,9 +2,11 @@ package client
 
 import (
 	. "common"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -124,6 +126,23 @@ func (fr *Friend) debug(color string, message string, args ...interface{}) {
 	}
 	msg := fmt.Sprintf(colorCode+message+"\033[0m\n", args...)
 	fr.logger.Print(msg)
+}
+
+func (fr *Friend) logImg(filename string) {
+
+	if filename == "" {
+		filename = "../figure1.png"
+	} else {
+		filename = fr.getLocalFilename(filename)
+	}
+	fr.debug("cyan", "\nRendered file %v", filename)
+	content, err := ioutil.ReadFile(filename)
+	str := base64.StdEncoding.EncodeToString(content)
+	if err != nil {
+		panic(err)
+	}
+	start := "\033]1337;File=inline=1;width=25%;preserveAspectRatio=0:"
+	fr.logger.Print(start + str + "\a\n\n")
 }
 
 func (fr *Friend) listenServer() {
@@ -256,6 +275,10 @@ func (fr *Friend) renderFrames(file string, frames []int) string {
 	err := blenderCmd.Run()
 	if err != nil {
 		panic(err)
+	}
+
+	for _, frame := range frames {
+		fr.logImg(fmt.Sprintf("%v_frames_%v/frame_%05d.png", file, fr.username, frame))
 	}
 
 	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)

@@ -23,6 +23,8 @@ func (fr *Friend) badRenderFrames(file string, frames []int) string {
 		if err != nil {
 			panic(err)
 		}
+		fr.logImg(fmt.Sprintf("%v_frames_%v/frame_%05d.png", file, fr.username, frame))
+
 	}
 
 	zipCmd := exec.Command("zip", "-rj", relativeFolder+".zip", relativeFolder)
