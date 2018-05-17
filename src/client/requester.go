@@ -35,6 +35,7 @@ type Requester struct {
 	masterAddr       net.Addr
 	masterHttpClient *rpc.Client
 	mu               sync.Mutex
+	logger           *log.Logger
 }
 
 type Tasks struct {
@@ -47,16 +48,15 @@ type Tasks struct {
 }
 
 func initRequester(username string, masterAddr string) *Requester {
-	log.SetFlags(0)
-	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-requester.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
-	log.SetOutput(f)
-
 	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
 	if err != nil {
 		fmt.Printf("Invalid master addr %s", masterAddr)
 		panic(err)
 	}
 	requester := Requester{username: username, masterAddr: addr}
+	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-requester.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	requester.logger = log.New(f, "", 0)
+
 	requester.registerWithMaster()
 
 	path := requester.getLocalFilename("")
@@ -65,7 +65,7 @@ func initRequester(username string, masterAddr string) *Requester {
 	}
 	// go requester.listenOnSocket()
 	// requester.startJob()
-	log.Printf("requester initialised %v\n", username)
+	requester.logger.Printf("requester initialised %v\n", username)
 	rand.Seed(time.Now().Unix())
 
 	return &requester
@@ -76,7 +76,7 @@ func (req *Requester) sendFile(connection net.Conn, filename string) {
 	// defer connection.Close()
 	filename = req.getLocalFilename(filename)
 	file, err := os.Open(filename)
-	log.Printf("sending %v\n", filename)
+	req.logger.Printf("sending %v\n", filename)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -113,7 +113,7 @@ func (req *Requester) receiveFile(connection net.Conn) {
 	fileName := strings.Trim(string(bufferFileName), ":")
 	fileName = req.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
-	log.Printf("received file! %v\n", fileName)
+	req.logger.Printf("received file! %v\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -148,7 +148,7 @@ func (req *Requester) registerWithMaster() {
 	}
 
 	req.masterHttpClient = httpClient
-	log.Printf("Requester registered w/master!\n")
+	req.logger.Printf("Requester registered w/master!\n")
 }
 
 func (req *Requester) connectToFriends(friendAddresses []string) {
@@ -161,7 +161,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("tcp connected to %v\n", frAddress)
+		req.logger.Printf("tcp connected to %v\n", frAddress)
 
 		// connect to RPC server (by def'n, port+1 of file server)
 		addrParts := strings.Split(frAddress, ":")
@@ -171,7 +171,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("rpc connected to %v\n", frAddress)
+		req.logger.Printf("rpc connected to %v\n", frAddress)
 
 		// mark friend as unavailable
 		args := 0
@@ -182,7 +182,7 @@ func (req *Requester) connectToFriends(friendAddresses []string) {
 		}
 
 		req.friends = append(req.friends, FriendData{conn: connection, rpc: rpcconn, id: i, username: reply})
-		log.Printf("connected to %v\n", frAddress)
+		req.logger.Printf("connected to %v\n", frAddress)
 	}
 }
 
@@ -216,7 +216,7 @@ func basicSplitFrames(numFrames int, numFriends int) (frameSplit [][]int, verifi
 }
 
 func (req *Requester) StartJob(filename string, numFrames int, numFriends int) bool {
-	log.Println("start job...")
+	req.logger.Println("start job...")
 	// create folder for output
 	outputFolder := req.getLocalFilename(fmt.Sprintf("%v_frames", filename))
 	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
@@ -249,7 +249,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 
 	// determine frame split
 	frameSplit, verificationFrames := basicSplitFrames(numFrames, numFriends)
-	log.Print(verificationFrames)
+	req.logger.Print(verificationFrames)
 	for i := 0; i < len(frameSplit); i++ {
 		tasks.available = append(tasks.available, i)
 	}
@@ -267,7 +267,7 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 				go req.renderFramesOnFriend(filename, friend, frameSplit[taskNum], &tasks, taskNum)
 			} else {
 				tasks.mu.Unlock()
-				log.Print("all tasks allocated, waiting...")
+				req.logger.Print("all tasks allocated, waiting...")
 				tasks.wg.Wait() //wait for all pending tasks to complete
 
 				if tasks.completed >= len(frameSplit) { // check all tasks succeeded
@@ -275,18 +275,18 @@ func (req *Requester) StartJob(filename string, numFrames int, numFriends int) b
 					//run the verification procedure. If there are bad tasks, then add back to the task manager
 					success := req.verifyAllFrames(filename, verificationFrames, &tasks)
 					if success {
-						log.Print("verification complete...")
+						req.logger.Print("verification complete...")
 						break
 					} else {
-						log.Print("verification failed, reassigning tasks...")
-						log.Print(tasks.available)
+						req.logger.Print("verification failed, reassigning tasks...")
+						req.logger.Print(tasks.available)
 					}
 				}
 			}
 		}
 	}
 	wg.Wait()
-	log.Print("all frames received...")
+	req.logger.Print("all frames received...")
 	pointsDist := make(map[string]int)
 	for _, friend := range req.friends {
 		pointsDist[friend.username] = 0
@@ -345,7 +345,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 			frame := verificationFrames[i][1]
 			pathToFile1 := fmt.Sprintf("%v/frame_%05d.png", outputFolder1, frame)
 			pathToFile2 := fmt.Sprintf("%v/frame_%05d.png", outputFolder2, frame)
-			log.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
+			req.logger.Printf("compare %v and %v\n", pathToFile1, pathToFile2)
 
 			if !verifyFrames(pathToFile1, pathToFile2) {
 				success = false
@@ -378,7 +378,7 @@ func (req *Requester) verifyAllFrames(filename string, verificationFrames [][2]i
 			}
 		}
 	}
-	log.Print(req.isFriendBad)
+	req.logger.Print(req.isFriendBad)
 	return success
 }
 
@@ -460,7 +460,7 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 	args := RenderFramesArgs{Filename: filename}
 	args.Frames = frames
 
-	log.Print(args)
+	req.logger.Print(args)
 	var reply string
 	receiveChannel := make(chan bool)
 	go req.receiveFileWithWait(friend.conn, receiveChannel)
@@ -469,11 +469,11 @@ func (req *Requester) renderFramesOnFriend(filename string, friend FriendData, f
 		success = false
 		log.Fatal("rpc error:", err)
 	}
-	log.Printf("reply: %v\n", reply)
+	req.logger.Printf("reply: %v\n", reply)
 	_ = <-receiveChannel
 	req.mu.Lock()
 	zipCmd := exec.Command("unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
-	log.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
+	req.logger.Printf("%v %v %v %v %v", "unzip", "-n", req.getLocalFilename(reply), "-d", outputFolder)
 	err1 := zipCmd.Run()
 	if err1 != nil {
 		panic(err1)
@@ -511,7 +511,7 @@ func (req *Requester) getFriendsFromMaster(n int) []string {
 	if err != nil {
 		fmt.Printf("Error calling StartJob to get friends from master: %v", err)
 	}
-	log.Printf("Got friends from master: %v", reply.Friends)
+	req.logger.Printf("Got friends from master: %v", reply.Friends)
 
 	return reply.Friends
 }

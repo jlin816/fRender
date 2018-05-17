@@ -37,13 +37,11 @@ type Friend struct {
 	rpcServer        net.Listener
 	lastJobCompleted int
 	Bad              bool
+	logger           *log.Logger
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
 	// set up logging
-	log.SetFlags(0)
-	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-friend.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
-	log.SetOutput(f)
 
 	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
 	if err != nil {
@@ -51,6 +49,8 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 		panic(err)
 	}
 	friend := Friend{username: username, port: port, masterAddr: addr}
+	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-friend.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	friend.logger = log.New(f, "", 0)
 	friend.registerWithMaster()
 
 	//make local folder
@@ -65,7 +65,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	handler.Register(&friend)
 	myIP, _ := externalIP()
 	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%d", myIP, port+1))
-	log.Printf("rpc server listening on %v", ln.Addr())
+	friend.logger.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 			if err != nil {
 				panic(err)
 			}
-			log.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
+			friend.logger.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
 			go handler.ServeConn(cxn)
 		}
 	}()
@@ -91,7 +91,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
 
-	log.Printf("friend initialised %v\n", username)
+	friend.logger.Printf("friend initialised %v\n", username)
 
 	return &friend
 }
@@ -123,7 +123,7 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	log.Printf("sending file %v\n", filename)
+	fr.logger.Printf("sending file %v\n", filename)
 	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
@@ -146,7 +146,7 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 		}
 		connection.Write(sendBuffer)
 	}
-	log.Printf("sent file %v\n", filename)
+	fr.logger.Printf("sent file %v\n", filename)
 	return
 }
 
@@ -161,7 +161,7 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 	fileName := strings.Trim(string(bufferFileName), ":")
 	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
-	log.Printf("file received %v\n", fileName)
+	fr.logger.Printf("file received %v\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -202,7 +202,7 @@ func (fr *Friend) registerWithMaster() {
 
 	fr.httpClient = httpClient
 
-	log.Printf("friend registered w/master\n")
+	fr.logger.Printf("friend registered w/master\n")
 }
 
 func (fr *Friend) renderFrames(file string, frames []int) string {
@@ -299,18 +299,18 @@ func externalIP() (string, error) {
 ////// PUBLIC METHODS ///////
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
-	log.Print("rendering frames\n")
+	fr.logger.Print("rendering frames\n")
 	var file string
 	if fr.Bad {
 		file = fr.badRenderFrames(args.Filename, args.Frames)
 	} else {
 		file = fr.renderFrames(args.Filename, args.Frames)
 	}
-	log.Printf("done %v %v !\n", fr.username, file)
+	fr.logger.Printf("done %v %v !\n", fr.username, file)
 	fr.sendFile(fr.requesterConn, file)
 	os.RemoveAll(fr.getLocalFilename(file))
 	fr.lastJobCompleted++
-	log.Print(file)
+	fr.logger.Print(file)
 	*reply = file
 	return nil
 }
