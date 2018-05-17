@@ -65,7 +65,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	handler.Register(&friend)
 	myIP, _ := externalIP()
 	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%d", myIP, port+1))
-	friend.logger.Printf("rpc server listening on %v", ln.Addr())
+	// friend.logger.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 			if err != nil {
 				panic(err)
 			}
-			friend.logger.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
+			// friend.logger.Printf("Server %s accepted connection to %s from %s\n", friend.username, cxn.LocalAddr(), cxn.RemoteAddr())
 			go handler.ServeConn(cxn)
 		}
 	}()
@@ -91,9 +91,39 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
 
-	friend.logger.Printf("friend initialised %v\n", username)
+	friend.debug("", "~Initialised friend %v~\n\n", username)
 
 	return &friend
+}
+
+func (fr *Friend) debug(color string, message string, args ...interface{}) {
+	colorCode := "\033[97m"
+	switch color {
+	case "default":
+		colorCode = "\033[39m"
+	case "":
+		colorCode = "\033[39m"
+	case "red":
+		colorCode = "\033[31m"
+	case "green":
+		colorCode = "\033[32m"
+	case "yellow":
+		colorCode = "\033[33m"
+	case "blue":
+		colorCode = "\033[34m"
+	case "magenta":
+		colorCode = "\033[35m"
+	case "cyan":
+		colorCode = "\033[36m"
+	case "gray":
+		colorCode = "\033[90m"
+	case "lgray":
+		colorCode = "\033[37m"
+	case "lred":
+		colorCode = "\033[91m"
+	}
+	msg := fmt.Sprintf(colorCode+message+"\033[0m\n", args...)
+	fr.logger.Print(msg)
 }
 
 func (fr *Friend) listenServer() {
@@ -123,7 +153,7 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	fr.logger.Printf("sending file %v\n", filename)
+	fr.debug("red", "Sending file %v\n", filename)
 	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
@@ -146,7 +176,7 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 		}
 		connection.Write(sendBuffer)
 	}
-	fr.logger.Printf("sent file %v\n", filename)
+	fr.debug("red", "Sent file %v\n", filename)
 	return
 }
 
@@ -161,7 +191,7 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 	fileName := strings.Trim(string(bufferFileName), ":")
 	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
-	fr.logger.Printf("file received %v\n", fileName)
+	fr.debug("green", "File received from requester: %v\n\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -202,7 +232,7 @@ func (fr *Friend) registerWithMaster() {
 
 	fr.httpClient = httpClient
 
-	fr.logger.Printf("friend registered w/master\n")
+	fr.debug("lgray", "%v registered with master\n", fr.username)
 }
 
 func (fr *Friend) renderFrames(file string, frames []int) string {
@@ -299,18 +329,17 @@ func externalIP() (string, error) {
 ////// PUBLIC METHODS ///////
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
-	fr.logger.Print("rendering frames\n")
+	fr.debug("cyan", "Begin rendering frames! \nFrames to render: %v\n", args.Frames)
 	var file string
 	if fr.Bad {
 		file = fr.badRenderFrames(args.Filename, args.Frames)
 	} else {
 		file = fr.renderFrames(args.Filename, args.Frames)
 	}
-	fr.logger.Printf("done %v %v !\n", fr.username, file)
+	fr.debug("cyan", "Frames rendered \n")
 	fr.sendFile(fr.requesterConn, file)
 	os.RemoveAll(fr.getLocalFilename(file))
 	fr.lastJobCompleted++
-	fr.logger.Print(file)
 	*reply = file
 	return nil
 }
