@@ -30,7 +30,7 @@ func (fr *Friend) badRenderFrames(file string, frames []int) string {
 	if err1 != nil {
 		panic(err1)
 	}
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	os.RemoveAll(relativeFolder)
 	return fmt.Sprintf("%v_frames_%v", file, fr.username) + ".zip"
 }

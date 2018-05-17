@@ -47,6 +47,10 @@ type Tasks struct {
 }
 
 func initRequester(username string, masterAddr string) *Requester {
+	log.SetFlags(0)
+	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-requester.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	log.SetOutput(f)
+
 	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
 	if err != nil {
 		fmt.Printf("Invalid master addr %s", masterAddr)

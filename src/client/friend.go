@@ -26,20 +26,25 @@ type RenderFramesArgs struct {
 }
 
 type Friend struct {
-	me            int
-	username      string
-	port          int
-	masterAddr    net.Addr
-	requesterConn net.Conn
-	server        net.Listener
-	available     bool
-	httpClient    *rpc.Client
-	rpcServer     net.Listener
+	me               int
+	username         string
+	port             int
+	masterAddr       net.Addr
+	requesterConn    net.Conn
+	server           net.Listener
+	available        bool
+	httpClient       *rpc.Client
+	rpcServer        net.Listener
 	lastJobCompleted int
-	Bad           bool
+	Bad              bool
 }
 
 func initFriend(username string, port int, masterAddr string) *Friend {
+	// set up logging
+	log.SetFlags(0)
+	f, _ := os.OpenFile(fmt.Sprintf("logs/%v-friend.log", username), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+	log.SetOutput(f)
+
 	addr, err := net.ResolveTCPAddr("tcp", masterAddr)
 	if err != nil {
 		fmt.Printf("Invalid master addr %s", masterAddr)
