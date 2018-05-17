@@ -65,7 +65,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	handler.Register(&friend)
 	myIP, _ := externalIP()
 	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%d", myIP, port+1))
-	fmt.Printf("rpc server listening on %v", ln.Addr())
+	log.Printf("rpc server listening on %v", ln.Addr())
 	if err != nil {
 		panic(err)
 	}
@@ -91,7 +91,7 @@ func initFriend(username string, port int, masterAddr string) *Friend {
 	go friend.sendHeartbeatsToMaster()
 	go friend.listenServer()
 
-	fmt.Printf("friend initialised %v\n", username)
+	log.Printf("friend initialised %v\n", username)
 
 	return &friend
 }
@@ -123,7 +123,7 @@ func fillString(returnString string, toLength int) string {
 
 func (fr *Friend) sendFile(connection net.Conn, filename string) {
 	// from http://www.mrwaggel.be/post/golang-transfer-a-file-over-a-tcp-socket/
-	fmt.Printf("sending file! %v\n", filename)
+	log.Printf("sending file %v\n", filename)
 	filename = fr.getLocalFilename(filename)
 	file, err := os.Open(filename)
 	if err != nil {
@@ -146,7 +146,7 @@ func (fr *Friend) sendFile(connection net.Conn, filename string) {
 		}
 		connection.Write(sendBuffer)
 	}
-	fmt.Printf("sent file! %v\n", filename)
+	log.Printf("sent file %v\n", filename)
 	return
 }
 
@@ -161,7 +161,7 @@ func (fr *Friend) receiveFile(connection net.Conn) { // maybe want port as argum
 	fileName := strings.Trim(string(bufferFileName), ":")
 	fileName = fr.getLocalFilename(fileName)
 	newFile, err := os.Create(fileName)
-	fmt.Printf("file received %v\n", fileName)
+	log.Printf("file received %v\n", fileName)
 
 	if err != nil {
 		panic(err)
@@ -202,7 +202,7 @@ func (fr *Friend) registerWithMaster() {
 
 	fr.httpClient = httpClient
 
-	fmt.Printf("friend registered w/master\n")
+	log.Printf("friend registered w/master\n")
 }
 
 func (fr *Friend) renderFrames(file string, frames []int) string {
@@ -299,18 +299,18 @@ func externalIP() (string, error) {
 ////// PUBLIC METHODS ///////
 
 func (fr *Friend) RenderFrames(args RenderFramesArgs, reply *string) error {
-	fmt.Printf("rendering frames\n")
+	log.Print("rendering frames\n")
 	var file string
 	if fr.Bad {
 		file = fr.badRenderFrames(args.Filename, args.Frames)
 	} else {
 		file = fr.renderFrames(args.Filename, args.Frames)
 	}
-	fmt.Printf("DONE %v %v !!\n", fr.username, file)
+	log.Printf("done %v %v !\n", fr.username, file)
 	fr.sendFile(fr.requesterConn, file)
 	os.RemoveAll(fr.getLocalFilename(file))
 	fr.lastJobCompleted++
-	fmt.Println(file)
+	log.Print(file)
 	*reply = file
 	return nil
 }
